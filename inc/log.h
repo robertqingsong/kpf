@@ -8,11 +8,21 @@
 #ifndef __LOG_H__
 #define __LOG_H__
 
+#include "typedefs.h"
+
 #ifdef (__cplusplus)
 extern "C"
 {
 #endif
 
+/*******************************************************
+* Function Name: log_print
+* Input Param: const int8_t *pFormat, ...
+* Return Type: int32_t 0:ok, -1:failed
+* Description: show log.
+* Writer: robert
+********************************************************/
+int32_t log_print( const int8_t *pFormat, ... );
 
 #ifdef (__cplusplus)
 }
