@@ -8,7 +8,11 @@
 #ifndef __CONFIG_H__
 #define __CONFIG_H__
 
-#ifdef (__cplusplus)
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+
+#if defined(__cplusplus)
 extern "C"
 {
 #endif
@@ -25,7 +29,7 @@ extern "C"
 //If enable debug support.
 #define DEBUG_SUPPORT  (1)
 	
-#ifdef (__cplusplus)
+#if defined(__cplusplus)
 }
 #endif
 

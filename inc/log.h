@@ -10,7 +10,7 @@
 
 #include "typedefs.h"
 
-#ifdef (__cplusplus)
+#if defined(__cplusplus)
 extern "C"
 {
 #endif
@@ -24,7 +24,7 @@ extern "C"
 ********************************************************/
 int32_t log_print( const int8_t *pFormat, ... );
 
-#ifdef (__cplusplus)
+#if defined(__cplusplus)
 }
 #endif
 

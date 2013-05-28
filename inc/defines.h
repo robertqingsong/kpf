@@ -8,13 +8,15 @@
 #ifndef __DEFINES_H__
 #define __DEFINES_H__
 
-#ifdef (__cplusplus)
+#include "config.h"
+
+#if defined(__cplusplus)
 extern "C"
 {
 #endif
 
 
-#ifdef (__cplusplus)
+#if defined(__cplusplus)
 }
 #endif
 
