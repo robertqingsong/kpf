@@ -10,10 +10,11 @@ TARGET=libkpf.a
 OBJECTS=../../src/block.o ../../src/bsearch.o ../../src/future.o ../../src/list.o \
 	../../src/btree.o ../../src/mem_api.o ../../src/select.o ../../src/task.o \
 	../../src/kqueue.o ../../src/lock.o ../../src/net_api.o ../../src/sem.o \
-	../../src/bsearch.o ../../src/log.o ../../src/oal_api.o ../../src/smart.o
+	../../src/log.o ../../src/oal_api.o ../../src/smart.o
 
 all:$(OBJECTS)
-	ar rc  $(TARGET) $(OBJECTS)
+	$(AR) rc  $(TARGET) $(OBJECTS)
+	$(STRIP) $(TARGET)
 
 $(OBJECTS):%.o:%.c
 	$(CC) -c $(INCLUDE_DIR) $< -o $@
