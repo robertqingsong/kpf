@@ -22,6 +22,22 @@ extern "C"
 * Description: show log.
 * Writer: robert
 ********************************************************/
+
+typedef enum
+{
+  LOG_TYPE_START, 
+
+  LOG_TYPE_FILE, 
+  LOG_TYPE_CONSOLE, 
+  LOG_TYPE_NET, 
+
+  LOG_TYPE_END
+}C_LOG_TYPE;
+
+int32_t enable_log( int32_t iIsEnable );
+
+int32_t set_log( const C_LOG_TYPE eLogType, const void *pParam, const int32_t iParamSize );
+
 int32_t log_print( const int8_t *pFormat, ... );
 
 #if defined(__cplusplus)
