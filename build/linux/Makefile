@@ -14,12 +14,16 @@ OBJECTS=../../src/block.o ../../src/bsearch.o ../../src/future.o ../../src/list.
 
 all:$(OBJECTS)
 	$(AR) rc  $(TARGET) $(OBJECTS)
-	$(STRIP) $(TARGET)
+#	$(STRIP) $(TARGET)
 
 $(OBJECTS):%.o:%.c
 	$(CC) -c $(INCLUDE_DIR) $< -o $@
 
+demo:
+	$(CC) test.c $(INCLUDE_DIR) -o demo -L./ -lkpf
+
 clean:
 	$(RM) -rf $(OBJECTS)
 	$(RM) -rf $(TARGET)
+	$(RM) -rf demo
 
