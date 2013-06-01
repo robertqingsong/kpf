@@ -170,7 +170,7 @@ int32_t enable_log( int32_t iIsEnable )
 			lock( &fg_LogMutex );
 
 			fg_iIsEnabled = iIsEnable;//Open log.
-
+			iRetCode = 0;
 
 			unlock( &fg_LogMutex );
 		}
