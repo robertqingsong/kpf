@@ -55,25 +55,30 @@ int32_t set_log( const C_LOG_TYPE eLogType, const void *pParam, const int32_t iP
 int32_t log_print( const int8_t *pFormat, ... )
 {
         int32_t iRetCode = -1;        
-	va_list args;
-	int8_t pTempBuf[128] = { 0x00, };
-
-	va_start( args, pFormat );
-	iRetCode = vsnprintf(pTempBuf, sizeof(pTempBuf), pFormat, args);
-	va_end(args);
-
-	switch ( fg_eLogType )
+	
+	if ( fg_iIsEnabled )
 	{
-	case LOG_TYPE_CONSOLE:
-	{
-		printk( KERN_ERR "%s\r\n", pTempBuf );	
-	}break ;
-	default:
-	{
+		va_list args;
+		int8_t pTempBuf[128] = { 0x00, };
 
-	}break ;
+		va_start( args, pFormat );
+		iRetCode = vsnprintf(pTempBuf, sizeof(pTempBuf), pFormat, args);
+		va_end(args);
+
+		switch ( fg_eLogType )
+		{
+		case LOG_TYPE_CONSOLE:
+		{
+			printk( KERN_DEBUG "%s\r\n", pTempBuf );	
+		}break ;
+		default:
+		{
+
+		}break ;
+		}
 	}
-																						return iRetCode;
+
+	return iRetCode;
 }
 
 
