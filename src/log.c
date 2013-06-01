@@ -36,6 +36,7 @@ int32_t enable_log( int32_t iIsEnable )
 {
 	int32_t iRetCode = -1;
 
+	memset( &fg_LogMutex, 0x00, sizeof(fg_LogMutex) );
 	if ( init_mutex( &fg_LogMutex ) >= 0 )
 	{
 		lock( &fg_LogMutex );
@@ -128,6 +129,7 @@ int32_t enable_log( int32_t iIsEnable )
 {
 	int32_t iRetCode = -1;
 	
+	memset( &fg_LogMutex, 0x00, sizeof(fg_LogMutex) );
 	if ( init_mutex( &fg_LogMutex ) >= 0 )
 	{
 		lock( &fg_LogMutex );
