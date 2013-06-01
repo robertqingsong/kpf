@@ -36,15 +36,35 @@ int32_t enable_log( int32_t iIsEnable )
 {
 	int32_t iRetCode = -1;
 
-	memset( &fg_LogMutex, 0x00, sizeof(fg_LogMutex) );
-	if ( init_mutex( &fg_LogMutex ) >= 0 )
+	if ( iIsEnable == fg_iIsEnabled )
 	{
-		lock( &fg_LogMutex );
-
-		fg_iIsEnabled = iIsEnable;
+		//no change on log.
 		iRetCode = 0;
 
-		unlock( &fg_LogMutex );
+		return iRetCode;
+	}
+
+	if ( !fg_iIsEnabled )
+	{
+		//Open logging.
+
+		memset( &fg_LogMutex, 0x00, sizeof(fg_LogMutex) );
+		if ( init_mutex( &fg_LogMutex ) >= 0 )
+		{
+			lock( &fg_LogMutex );
+
+			fg_iIsEnabled = iIsEnable;
+			iRetCode = 0;
+
+			unlock( &fg_LogMutex );
+		}
+	}
+	else
+	{
+		//Close logging.
+		fg_iIsEnabled = iIsEnable;
+
+		iRetCode = 0;
 	}
 
 	return iRetCode;
@@ -129,51 +149,61 @@ int32_t enable_log( int32_t iIsEnable )
 {
 	int32_t iRetCode = -1;
 	
-	memset( &fg_LogMutex, 0x00, sizeof(fg_LogMutex) );
-	if ( init_mutex( &fg_LogMutex ) >= 0 )
+	if ( fg_iIsEnabled == iIsEnable )
 	{
+		//No change on log.
+		iRetCode = 0;
+
+		return iRetCode;
+	}
+
+	if ( !fg_iIsEnabled )
+	{
+		//Open logging.
+		memset( &fg_LogMutex, 0x00, sizeof(fg_LogMutex) );
+		if ( init_mutex( &fg_LogMutex ) >= 0 )
+		{
+			lock( &fg_LogMutex );
+
+			fg_iIsEnabled = iIsEnable;//Open log.
+
+
+			unlock( &fg_LogMutex );
+		}
+	}
+	else
+	{
+		//Close logging.
 		lock( &fg_LogMutex );
+
+		switch ( fg_eLogType )
+		{
+		case LOG_TYPE_FILE:
+		{
+			if ( pfg_FileLogHandler )
+			{
+				fclose( pfg_FileLogHandler );
+				pfg_FileLogHandler = NULL;
+			}
+
+		}break ;
+		case LOG_TYPE_CONSOLE:
+		{
+
+		}break ;
+		case LOG_TYPE_NET:
+		{
+			
+		}break ;
+		default:
+		{
+
+		}break ;
+		}
 
 		fg_iIsEnabled = iIsEnable;
 
-		if ( iIsEnable )
-		{
-			iRetCode = 0;	
-		}
-  		else ( !fg_iIsEnabled )
- 		{
-    			switch ( fg_eLogType )
-    			{
-    			case LOG_TYPE_FILE:
-    			{
-      				if ( pfg_FileLogHandler )
-      				{
-					fclose( pfg_FileLogHandler );
-					pfg_FileLogHandler = NULL;
-
-      				}
-				iRetCode = 0;
-   			}break ;
-    			case LOG_TYPE_CONSOLE:
-    			{
-
-    			}break ;
-  			case LOG_TYPE_NET:
-   			{
-      				if ( fg_iNetLogHandler >= 0 )
-      				{	  
-					//close net socket id.
-	
-	
-      				}
-      
-    			}break ;
-  			default:
-    			{
-
-    			}break;
-			}
-		}
+		iRetCode = 0;
 
 		unlock( &fg_LogMutex );
 	}
