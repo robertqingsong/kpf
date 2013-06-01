@@ -15,6 +15,7 @@ insert:
 remove:
 	rmmod $(MODULE_NAME).ko
 clean:
-	rm -rf ../../src/*.o ./*.o *.mod *.ko* modules.order Module.symvers *.pc.in
+	rm -rf .tmp_versions .built-in.o.cmd ../../src/*.o ./*.o *.mod .$(MODULE_NAME).* $(MODULE_NAME).mod.c *.ko* modules.order Module.symvers *.pc.in
+	rm -rf ../../modules/kmodule.o ../../modules/.kmodule.o.cmd
 endif
 
