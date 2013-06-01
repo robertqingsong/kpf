@@ -1,29 +1,20 @@
-CC=gcc
-AR=ar
-STRIP=strip
-RM=rm -rf
-CFLAGS=
-LDFLAGS=
-INCLUDE_DIR=-I../../inc -I../../src
-TARGET=libkpf.a
-
-OBJECTS=../../src/block.o ../../src/bsearch.o ../../src/future.o ../../src/list.o \
-	../../src/btree.o ../../src/mem_api.o ../../src/select.o ../../src/task.o \
-	../../src/kqueue.o ../../src/lock.o ../../src/net_api.o ../../src/sem.o \
-	../../src/log.o ../../src/oal_api.o ../../src/smart.o
-
-all:$(OBJECTS)
-	$(AR) rc  $(TARGET) $(OBJECTS)
-#	$(STRIP) $(TARGET)
-
-$(OBJECTS):%.o:%.c
-	$(CC) -c $(INCLUDE_DIR) $< -o $@
-
-demo:
-	$(CC) test.c $(INCLUDE_DIR) -o demo -L./ -lkpf
-
+ifneq ($(KERNELRELEASE),)
+kpf-objs=../../src/list.o
+kpf-objs+=../../src/log.o
+obj-m:=kpf.o
+else
+WARN	:= -W -Wall -Wstrict-prototypes -Wmissing-prototypes
+INCLUDE	:= -I/media/workbench/dev/kpf/kpf/inc
+CFLAGS	:= -DMODULE -D__KERNEL__ ${WARN} $(INCLUDE)
+KERNEL_DIR=/lib/modules/$(shell uname -r)/build
+PWD:=$(shell pwd)
+all:
+	$(MAKE) -C $(KERNEL_DIR) M=$(PWD)
+insert:
+	insmod ./kpf.ko
+remove:
+	rmmod kpf.ko
 clean:
-	$(RM) -rf $(OBJECTS)
-	$(RM) -rf $(TARGET)
-	$(RM) -rf demo
+	rm -rf *.o *.mod *.ko* modules.order Module.symvers *.pc.in
+endif
 
