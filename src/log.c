@@ -44,7 +44,7 @@ int32_t enable_log( int32_t iIsEnable )
 		return iRetCode;
 	}
 
-	if ( !fg_iIsEnabled )
+	if ( iIsEnable )
 	{
 		//Open logging.
 
@@ -61,10 +61,14 @@ int32_t enable_log( int32_t iIsEnable )
 	}
 	else
 	{
+		lock( &fg_LogMutex );
+
 		//Close logging.
 		fg_iIsEnabled = iIsEnable;
 
 		iRetCode = 0;
+		
+		unlock( &fg_LogMutex );
 	}
 
 	return iRetCode;
@@ -157,7 +161,7 @@ int32_t enable_log( int32_t iIsEnable )
 		return iRetCode;
 	}
 
-	if ( !fg_iIsEnabled )
+	if ( iIsEnable )
 	{
 		//Open logging.
 		memset( &fg_LogMutex, 0x00, sizeof(fg_LogMutex) );
