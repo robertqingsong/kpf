@@ -20,7 +20,7 @@ $(OBJECTS):%.o:%.c
 	$(CC) $(CFLAGS) -c $(INCLUDE_DIR) $< -o $@
 
 demo:
-	$(CC) test.c $(LDFLAGS) $(INCLUDE_DIR) -o demo -L./ -lkpf
+	$(CC) ../../sdk/sdk_test.c $(LDFLAGS) $(INCLUDE_DIR) -o demo -L./ -lkpf -lpthread
 
 clean:
 	$(RM) -rf $(OBJECTS)

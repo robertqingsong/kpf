@@ -2,6 +2,7 @@ MODULE_NAME	:= test
 ifneq ($(KERNELRELEASE),)
 $(MODULE_NAME)-objs=../../src/list.o
 $(MODULE_NAME)-objs+=../../src/log.o
+$(MODULE_NAME)-objs+=../../src/lock.o
 $(MODULE_NAME)-objs+=../../modules/kmodule.o
 obj-m:=$(MODULE_NAME).o
 else
