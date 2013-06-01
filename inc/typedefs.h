@@ -16,7 +16,12 @@ extern "C"
 {
 #endif
 
-  //typedef char int8_t;
+#if (KERNEL_DEV_SUPPORT)
+
+#else
+typedef char int8_t;
+#endif
+
 typedef unsigned char int8u_t;
 typedef short int16_t;
 typedef unsigned short int16u_t;

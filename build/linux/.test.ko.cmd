@@ -1,0 +1,1 @@
+cmd_/media/workbench/dev/kpf/kpf/build/linux/test.ko := ld -r -m elf_x86_64 -T /usr/src/linux-headers-3.2.0-23-generic/scripts/module-common.lds --build-id  -o /media/workbench/dev/kpf/kpf/build/linux/test.ko /media/workbench/dev/kpf/kpf/build/linux/test.o /media/workbench/dev/kpf/kpf/build/linux/test.mod.o

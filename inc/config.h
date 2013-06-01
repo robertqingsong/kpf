@@ -8,14 +8,25 @@
 #ifndef __CONFIG_H__
 #define __CONFIG_H__
 
+#define KERNEL_DEV_SUPPORT  (1)
+
+#if (KERNEL_DEV_SUPPORT)
+
+#include <linux/init.h>
+#include <linux/module.h>
+MODULE_LICENSE( "dUAL bsd/gpl" );
+
+#else
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#endif
 
 #if defined(__cplusplus)
 extern "C"
 {
 #endif
+
 
 /*************************************************
  * OS Type Config.

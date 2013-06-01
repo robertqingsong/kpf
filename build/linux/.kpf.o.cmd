@@ -1,0 +1,1 @@
+cmd_/media/workbench/dev/kpf/kpf/build/linux/kpf.o := ld -m elf_x86_64   -r -o /media/workbench/dev/kpf/kpf/build/linux/kpf.o /media/workbench/dev/kpf/kpf/build/linux/../../src/list.o /media/workbench/dev/kpf/kpf/build/linux/../../src/log.o 
