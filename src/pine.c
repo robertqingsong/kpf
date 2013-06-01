@@ -12,7 +12,7 @@ typedef struct CSmart_t
 	int32_t (*on_close)( void *pData );
 }CSmart;
 
-static CSmart *create_smart( void *pData, int32_t (*close_callback)( void *pPine ) );
+static CSmart *create_smart( void *pData, int32_t (*close_callback)( void *pSmart ) );
 
 static int32_t copy_smart( CSmart *pDestSmart, CSmart *pSrcSmart );
 
