@@ -8,13 +8,28 @@
 #ifndef __LIST_H__
 #define __LIST_H__
 
-#ifdef (__cplusplus)
+#include "typedefs.h"
+
+#if defined(__cplusplus)
 extern "C"
 {
 #endif
 
+//list node type define.
+typedef struct CListNode_t
+{
+	struct CListNode_t *Prev;
+	struct CListNode_t *Next;	
+}CListNode;
 
-#ifdef (__cplusplus)
+//front insert node to list.
+int32_t insert_list_head_front( CListNode **ppListHead, CListNode *pNewNode );
+//rear insert node to list.
+int32_t insert_list_head_rear( CListNode **ppListHead, CListNode *pNewNode );
+//remove node from list.
+int32_t remove_list_head_node( CListNode **ppListHead, CListNode *pRemoveNode );
+
+#if defined(__cplusplus)
 }
 #endif
 
