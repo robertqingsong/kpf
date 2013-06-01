@@ -15,12 +15,59 @@
 #include "typedefs.h"
 
 
-#ifdef (__cplusplus)
+#if defined(__cplusplus)
 extern "C"
 {
 #endif
 
 #if (__OS_LINUX__)
+
+#if (KERNEL_DEV_SUPPORT)
+
+#include <linux/spinlock.h>
+
+/*********************************************************************************
+* type definitions.
+**********************************************************************************/
+typedef spinlock_t CMutex;
+
+/*********************************************************************************
+* mutex api declaration.
+**********************************************************************************/
+
+/*********************************************************************************
+* function name: init_mutex
+* input param: CMutex *pMutex //the mutex memory address.
+* return value type: int32_t //0 success, -1 failed.
+* description: to init a mutex.
+**********************************************************************************/
+int32_t init_mutex( CMutex *pMutex );
+
+/*********************************************************************************
+* function name: lock
+* input param: CMutex *pMutex //the mutex memory address.
+* return value type: int32_t //0 success, -1 failed.
+* description: to lcok a mutex.
+**********************************************************************************/
+int32_t lock( CMutex *pMutex );
+
+/*********************************************************************************
+* function name: unlock
+* input param: CMutex *pMutex //the mutex memory address.
+* return value type: int32_t //0 success, -1 failed.
+* description: to unlock a mutex.
+**********************************************************************************/
+int32_t unlock( CMutex *pMutex );
+
+/*********************************************************************************
+* function name: try_lock
+* input param: CMutex *pMutex //the mutex memory address.
+* return value type: int32_t //0 success, -1 failed.
+* description: to try lock a mutex.
+**********************************************************************************/
+int32_t try_lock( CMutex *pMutex );
+
+#else
 
 #include <pthread.h>
 
@@ -67,7 +114,9 @@ int32_t try_lock( CMutex *pMutex );
 
 #endif
 
-#ifdef (__cplusplus)
+#endif
+
+#if defined(__cplusplus)
 }
 #endif
 

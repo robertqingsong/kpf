@@ -1,4 +1,4 @@
-#include "lock.h"
+#include "../inc/lock.h"
 
 /*********************************************************************************
 * function name: init_mutex
@@ -11,12 +11,21 @@ int32_t init_mutex( CMutex *pMutex )
 	int32_t iRetCode = -1;
 
 #if (__OS_LINUX__)
+#if (KERNEL_DEV_SUPPORT)
 	if ( pMutex )
 	{
-		pthread_mutex_init(  );
+		spin_lock_init( pMutex );
 
-		
+		iRetCode = 0;
 	}
+#else
+	if ( pMutex )
+	{
+		memset( pMutex, 0x00, sizeof(*pMutex) );
+		if ( 0 == pthread_mutex_init( pMutex, NULL ) )
+			iRetCode = 0;
+	}
+#endif
 #endif
 
 	return iRetCode;
@@ -32,6 +41,20 @@ int32_t lock( CMutex *pMutex )
 {
 	int32_t iRetCode = -1;
 
+	if ( pMutex )
+	{
+#if (__OS_LINUX__)
+#if (KERNEL_DEV_SUPPORT)
+		spin_lock( pMutex );
+		iRetCode = 0;
+#else
+		while ( 0 != pthread_mutex_lock( pMutex ) )
+			;	
+		iRetCode = 0;
+#endif
+#endif
+	}
+
 	return iRetCode;
 }
 
@@ -44,7 +67,26 @@ int32_t lock( CMutex *pMutex )
 int32_t unlock( CMutex *pMutex )
 {
 	int32_t iRetCode = -1;
-	
+
+	if ( pMutex )
+	{
+#if (__OS_LINUX__)
+
+#if (KERNEL_DEV_SUPPORT)
+		spin_unlock( pMutex );
+		iRetCode = 0;
+#else
+
+	while ( 0 != pthread_mutex_unlock( pMutex ) )
+		;
+
+	iRetCode = 0;
+
+#endif
+
+#endif
+	}
+
 	return iRetCode;
 }
 
@@ -57,6 +99,26 @@ int32_t unlock( CMutex *pMutex )
 int32_t try_lock( CMutex *pMutex )
 {
 	int32_t iRetCode = -1;
+
+	if ( pMutex )
+	{
+
+#if (__OS_LINUX__)
+
+#if (KERNEL_DEV_SUPPORT)
+		spin_trylock( pMutex );
+		iRetCode = 0;
+#else
+		while ( 0 != pthread_mutex_trylock( pMutex ) )
+			;
+
+		iRetCode = 0;
+
+#endif
+
+#endif
+
+	}
 
 	return iRetCode;
 }

@@ -10,6 +10,7 @@
 *******************************************************************************************/
 #include "../inc/log.h"
 
+#include "../inc/lock.h"
 
 #include <stdarg.h>
 
@@ -18,6 +19,9 @@ static int32_t fg_iIsEnabled = 0;
 
 //log type.
 static C_LOG_TYPE fg_eLogType = LOG_TYPE_START;
+
+//log mutex
+static CMutex fg_LogMutex;
 
 #if (KERNEL_DEV_SUPPORT)
 
@@ -32,8 +36,15 @@ int32_t enable_log( int32_t iIsEnable )
 {
 	int32_t iRetCode = -1;
 
-	fg_iIsEnabled = iIsEnable;
-	iRetCode = 0;
+	if ( init_mutex( &fg_LogMutex ) >= 0 )
+	{
+		lock( &fg_LogMutex );
+
+		fg_iIsEnabled = iIsEnable;
+		iRetCode = 0;
+
+		unlock( &fg_LogMutex );
+	}
 
 	return iRetCode;
 }
@@ -42,11 +53,18 @@ int32_t set_log( const C_LOG_TYPE eLogType, const void *pParam, const int32_t iP
 {
 	int32_t iRetCode = -1;
 
-	if ( LOG_TYPE_CONSOLE == eLogType )
+	if ( fg_iIsEnabled )
 	{
-		fg_eLogType = eLogType;
+		lock( &fg_LogMutex );
 
-		iRetCode = 0;
+		if ( LOG_TYPE_CONSOLE == eLogType )
+		{
+			fg_eLogType = eLogType;
+
+			iRetCode = 0;
+		}
+
+		unlock( &fg_LogMutex );
 	}
 
 	return iRetCode;
@@ -60,6 +78,8 @@ int32_t log_print( const int8_t *pFormat, ... )
 	{
 		va_list args;
 		int8_t pTempBuf[128] = { 0x00, };
+
+		lock( &fg_LogMutex );
 
 		va_start( args, pFormat );
 		iRetCode = vsnprintf(pTempBuf, sizeof(pTempBuf), pFormat, args);
@@ -76,6 +96,8 @@ int32_t log_print( const int8_t *pFormat, ... )
 
 		}break ;
 		}
+
+		unlock( &fg_LogMutex );
 	}
 
 	return iRetCode;
@@ -105,46 +127,53 @@ static CMutex fg_LogMutex;
 int32_t enable_log( int32_t iIsEnable )
 {
 	int32_t iRetCode = -1;
-
-	fg_iIsEnabled = iIsEnable;
-
-	if ( iIsEnable )
+	
+	if ( init_mutex( &fg_LogMutex ) >= 0 )
 	{
-		iRetCode = 0;	
-	}
-  	else ( !fg_iIsEnabled )
- 	{
-    		switch ( fg_eLogType )
-    		{
-    		case LOG_TYPE_FILE:
-    		{
-      			if ( pfg_FileLogHandler )
-      			{
-				fclose( pfg_FileLogHandler );
-				pfg_FileLogHandler = NULL;
+		lock( &fg_LogMutex );
 
-      			}
-			iRetCode = 0;
-   		}break ;
-    		case LOG_TYPE_CONSOLE:
-    		{
+		fg_iIsEnabled = iIsEnable;
 
-    		}break ;
-  		case LOG_TYPE_NET:
-   		{
-      			if ( fg_iNetLogHandler >= 0 )
-      			{	  
-				//close net socket id.
-	
-	
-      			}
-      
-    		}break ;
-  		default:
-    		{
-
-    		}break;
+		if ( iIsEnable )
+		{
+			iRetCode = 0;	
 		}
+  		else ( !fg_iIsEnabled )
+ 		{
+    			switch ( fg_eLogType )
+    			{
+    			case LOG_TYPE_FILE:
+    			{
+      				if ( pfg_FileLogHandler )
+      				{
+					fclose( pfg_FileLogHandler );
+					pfg_FileLogHandler = NULL;
+
+      				}
+				iRetCode = 0;
+   			}break ;
+    			case LOG_TYPE_CONSOLE:
+    			{
+
+    			}break ;
+  			case LOG_TYPE_NET:
+   			{
+      				if ( fg_iNetLogHandler >= 0 )
+      				{	  
+					//close net socket id.
+	
+	
+      				}
+      
+    			}break ;
+  			default:
+    			{
+
+    			}break;
+			}
+		}
+
+		unlock( &fg_LogMutex );
 	}
 
 	return iRetCode;
@@ -154,33 +183,40 @@ int32_t set_log( const C_LOG_TYPE eLogType, const void *pParam, const int32_t iP
 {
 	int32_t iRetCode = -1;
 
-  	fg_eLogType = eLogType;
+	if ( fg_iIsEnabled )
+	{
+		lock( &fg_LogMutex );
+		
+  		fg_eLogType = eLogType;
 
-  	switch ( eLogType )
-  	{
-  	case LOG_TYPE_FILE:
-    	{
-      		if ( !pfg_FileLogHandler && pParam )
-      		{
-			const int8_t *pLogFileName = (const int8_t *)pParam;
+  		switch ( eLogType )
+  		{
+  		case LOG_TYPE_FILE:
+    		{
+      			if ( !pfg_FileLogHandler && pParam )
+      			{
+				const int8_t *pLogFileName = (const int8_t *)pParam;
 
-			pfg_FileLogHandler = fopen( pLogFileName, "wb" );
-			if ( pfg_FileLogHandler )
-	  			iRetCode = 0;
-      		}
-    	}break ;
-  	case LOG_TYPE_CONSOLE:
-    	{
-     		iRetCode = 0;
-    	}break ;
-  	case LOG_TYPE_NET:
-    	{
+				pfg_FileLogHandler = fopen( pLogFileName, "wb" );
+				if ( pfg_FileLogHandler )
+	  				iRetCode = 0;
+      			}
+    		}break ;
+  		case LOG_TYPE_CONSOLE:
+    		{
+     			iRetCode = 0;
+    		}break ;
+  		case LOG_TYPE_NET:
+    		{
 
-    	}break ;
-  	default:
-    	{
+    		}break ;
+  		default:
+    		{
 
-    	}break;	
+    		}break;	
+		}
+
+		unlock( &fg_LogMutex );
 	}
 
   	return iRetCode;
@@ -192,37 +228,44 @@ int32_t log_print( const int8_t *pFormat, ... )
 	va_list args;
 	int8_t pTempBuf[1024] = { 0x00, };
 	
-	va_start( args, pFormat );
-	iRetCode = vsnprintf(pTempBuf, sizeof(pTempBuf), pFormat, args);
-	va_end(args);
-
-	switch ( fg_eLogType )
+	if ( fg_iIsEnabled )
 	{
-	case LOG_TYPE_FILE:
-	  {
-	    if ( pfg_FileLogHandler )
-	    {
-	      fwrite( pTempBuf, 1, iRetCode, pfg_FileLogHandler );
-	      fflush( pfg_FileLogHandler );
-	    }
-	  }break ;
-	case LOG_TYPE_CONSOLE:
-	  {
+		lock( &fg_LogMutex );
+
+		va_start( args, pFormat );
+		iRetCode = vsnprintf(pTempBuf, sizeof(pTempBuf), pFormat, args);
+		va_end(args);
+
+		switch ( fg_eLogType )
+		{
+		case LOG_TYPE_FILE:
+	  	{
+	    		if ( pfg_FileLogHandler )
+	    		{
+	      			fwrite( pTempBuf, 1, iRetCode, pfg_FileLogHandler );
+	      			fflush( pfg_FileLogHandler );
+	   		}
+	  	}break ;
+		case LOG_TYPE_CONSOLE:
+	  	{
 #if (__OS_WIN32__)
-	    fwrite( pTempBuf, 1, strlen(pTempBuf), stdout );
-		fwrite( "\r\n", 1, 2, stdout );
-	    fflush( stdout );
+	   	 	fwrite( pTempBuf, 1, strlen(pTempBuf), stdout );
+			fwrite( "\r\n", 1, 2, stdout );
+	    		fflush( stdout );
 	    
 #endif
-	  }break ;
-	case LOG_TYPE_NET:
-	  {
+	  	}break ;
+		case LOG_TYPE_NET:
+	  	{
 
-	  }break ;
-	default:
-	  {
+	  	}break ;
+		default:
+	  	{
 
-	  }break;
+	 	}break;
+		}
+
+		unlock( &fg_LogMutex );
 	}
 
 	return iRetCode;
