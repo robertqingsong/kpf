@@ -254,6 +254,12 @@ int32_t log_print( const int8_t *pFormat, ... )
 	   	 	fwrite( pTempBuf, 1, strlen(pTempBuf), stdout );
 			fwrite( "\r\n", 1, 2, stdout );
 	    		fflush( stdout );
+
+#elif (__OS_LINUX__)
+
+			fwrite( pTempBuf, 1, strlen(pTempBuf), stdout );
+			fwrite( "\r\n", 1, 2, stdout );
+			fflush( stdout );
 	    
 #endif
 	  	}break ;
