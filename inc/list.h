@@ -27,7 +27,7 @@ int32_t insert_list_head_front( CListNode **ppListHead, CListNode *pNewNode );
 //rear insert node to list.
 int32_t insert_list_head_rear( CListNode **ppListHead, CListNode *pNewNode );
 //remove node from list.
-int32_t remove_list_head_node( CListNode **ppListHead, CListNode *pRemoveNode );
+CListNode *remove_list_head_node( CListNode **ppListHead, CListNode *pRemoveNode );
 
 #if defined(__cplusplus)
 }

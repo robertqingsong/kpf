@@ -64,9 +64,9 @@ int32_t insert_list_head_rear( CListNode **ppListHead, CListNode *pNewNode )
 }
 
 //remove node from list.
-int32_t remove_list_head_node( CListNode **ppListHead, CListNode *pRemoveNode )
+CListNode *remove_list_head_node( CListNode **ppListHead, CListNode *pRemoveNode )
 {
-	int32_t iRetCode = -1;
+	CListNode *pRetCode = NULL;
 
 	if ( ppListHead && pRemoveNode )
 	{
@@ -83,6 +83,8 @@ int32_t remove_list_head_node( CListNode **ppListHead, CListNode *pRemoveNode )
 					(*ppListHead)->Prev = NULL;
 				
 				pRemoveNode->Prev = pRemoveNode->Next = NULL;
+
+				pRetCode = pRemoveNode;
 			}
 			else
 			{
@@ -93,11 +95,11 @@ int32_t remove_list_head_node( CListNode **ppListHead, CListNode *pRemoveNode )
 
 				pRemoveNode->Prev = pRemoveNode->Next = NULL;
 
-				iRetCode = 0;
+				pRetCode = pRemoveNode;
 			}
 		}
 	}
 
-	return iRetCode;
+	return pRetCode;
 }
 
