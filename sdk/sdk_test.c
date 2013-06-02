@@ -17,7 +17,7 @@ typedef struct CPerson_t
 	int32_t m_btId[32];//identification of person;
 }CPerson;
 
-int32_t release_person( CPerson *pPerson );
+int32_t release_person( void *pPerson );
 CPerson *create_person( void )
 {
 	CPerson *pRetCode = NULL;
@@ -25,9 +25,11 @@ CPerson *create_person( void )
 	pRetCode = (CPerson *)mem_malloc( sizeof( *pRetCode ) );
 	if ( pRetCode )
 	{
-		if ( operator_init( pRetCode ) >= 0 )
+		if ( operator_init( (CPine *)pRetCode ) >= 0 )
 		{
-			pRetCode->on_destory = release_person;
+			pRetCode->on_destory_child = release_person;
+
+			log_print( "pRerson->on_destory_child-->%u", pRetCode->on_destory_child );			
 
 			pRetCode->m_iAge = 28;
 			pRetCode->m_btSex[0] = 'm';
@@ -41,7 +43,7 @@ CPerson *create_person( void )
 	return pRetCode;
 }
 
-int32_t release_person( CPerson *pPerson )
+int32_t release_person( void *pPerson )
 {
 	int32_t iRetCode = -1;
 
@@ -51,9 +53,9 @@ int32_t release_person( CPerson *pPerson )
 
 	if ( pPerson )
 	{
-	//	mem_free( pPerson );
+		mem_free( pPerson );
 
-	//	pPerson = NULL;
+		pPerson = NULL;
 	}
 
 	return iRetCode;
@@ -70,8 +72,21 @@ int main( int argc, char **argv )
 	pMe = create_person();
 	if ( pMe )
 	{
-		operator_release( pMe );
+		CPerson *pMe2 = (CPerson *)operator_den( (CPine *)pMe );
+		
+		if ( pMe2 )
+		{
+			log_print( "pMe2->%u", pMe2 );
+
+			operator_release( (CPine *)pMe2 );
+		}
+		else
+			log_print( "pMe2 is NULL." );
+
+		operator_release( (CPine *)pMe );
 	}
+	else
+		log_print( "pMe is NULL." );
 	//log_print( "Hello world");
 
 #if 0
