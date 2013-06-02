@@ -20,11 +20,14 @@ typedef struct CPine_t
 	int32_t (*on_destory)( CPine *pPine ); \
 	void *pm_Base;
 
+#define CHILD_ADDR_OF_PINE(pine) \
+	((int8u_t *)( ((int8u_t *)pine) + sizeof(CPine) ))
+
 //init pine.
 int32_t operator_init( CPine *pPine );
 
 //copy pine
-int32_t operator_den( CPine *pPineDest, CPine *pPineSrc );
+CPine *operator_den( CPine *pPineSrc );
 
 //release.
 int32_t operator_release( CPine *pPine );

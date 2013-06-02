@@ -9,7 +9,7 @@
 //smart type define.
 typedef struct CSmart_t
 {
-	int32_t *pRefCount;
+	int32_t iRefCount;
 	void *pData;
 	int32_t (*on_close)( void *pData );
 }CSmart;
@@ -44,19 +44,19 @@ int32_t operator_init( CPine *pPine )
 }
 
 //copy pine
-int32_t operator_den( CPine *pPineDest, CPine *pPineSrc )
+CPine *operator_den( CPine *pPineSrc )
 {
-	int32_t iRetCode = -1;
+	CPine *pRetCode = NULL;
 
 	if ( pPineSrc )
 	{
-		pPineDest = pPineSrc;
+		pRetCode = pPineSrc;
 
-		if ( copy_smart( pPineDest->pm_Base, pPineSrc->pm_Base ) >= 0 )
-			iRetCode = 0;
+		if ( copy_smart( pRetCode->pm_Base, pPineSrc->pm_Base ) < 0 )
+			pRetCode = NULL;
 	}
 
-	return iRetCode;
+	return pRetCode;
 }
 
 //release.
@@ -79,13 +79,14 @@ static int32_t on_pine_destory( CPine *pPine )
 	log_print( "on_pine_destory:--------------------->" );
 	if ( pPine )
 	{
-		int32_t (*on_destory_child)( CPine *pPine );
+		int32_t (*on_destory_child)( CPine *pPine ) = NULL;
 
-		on_destory_child = ( int32_t (*)( CPine *) )((unsigned char *)pPine + sizeof(*pPine));
+		memcpy( &on_destory_child, CHILD_ADDR_OF_PINE(pPine), sizeof(on_destory_child) );
 		if ( on_destory_child )
+		{
+			log_print( "on_destory_child-->%u", on_destory_child );
 			on_destory_child( pPine );
-		mem_free( pPine );
-		pPine = NULL;
+		}
 
 		iRetCode = 0;
 	}
@@ -105,18 +106,12 @@ static int32_t on_pine_close( void *pData )
 	if ( pSmart )
 	{
 		CPine *pPine = (CPine *)pSmart->pData;
+                
+		mem_free( pSmart );
+                pSmart = NULL;
 
 		if ( pPine && pPine->on_destory )
 			iRetCode = pPine->on_destory( pPine );
-
-		if ( pSmart->pRefCount )
-		{
-			mem_free( pSmart->pRefCount );
-			pSmart->pRefCount = NULL;
-		}
-		
-		mem_free( pSmart );
-		pSmart = NULL;
 	}
 
 	log_print( "on_pine_close<---------------------" );
@@ -131,20 +126,13 @@ static CSmart *create_smart( void *pData, int32_t (*close_callback)( void *pData
 	pRetCode = mem_malloc( sizeof(*pRetCode) );
 	if ( pRetCode )
 	{
+		log_print( "pSmart->%u", pRetCode );
 		memset( pRetCode, 0x00, sizeof(*pRetCode) );
 
 		pRetCode->pData = pData;
 		pRetCode->on_close = close_callback;
-		pRetCode->pRefCount = mem_malloc( sizeof( *( pRetCode->pRefCount ) ) );
-		if ( !pRetCode->pRefCount )
-		{
-			mem_free( pRetCode );
-			pRetCode = NULL;
-		}
-		else
-		{
-			*(pRetCode->pRefCount) = 1;
-		}
+		pRetCode->iRefCount = 1;
+		
 	}
 
 	return pRetCode;
@@ -157,13 +145,10 @@ static int32_t copy_smart( CSmart *pDestSmart, CSmart *pSrcSmart )
 	if ( pSrcSmart )
 	{
 		pDestSmart = pSrcSmart;
+		
+		(pDestSmart->iRefCount)++;
+		iRetCode = 0;
 
-		if ( pDestSmart->pRefCount )
-		{
-			*(pDestSmart->pRefCount)++;
-
-			iRetCode = 0;
-		}
 	}
 
 	return iRetCode;
@@ -175,14 +160,11 @@ static int32_t release_smart( CSmart *pSmart )
 	
 	if ( pSmart )
 	{
-		if ( pSmart->pRefCount )
-		{
-			*(pSmart->pRefCount)--;
+		(pSmart->iRefCount)--;
 
-			if ( *(pSmart->pRefCount) <= 0 )
-			{
-				iRetCode = pSmart->on_close( pSmart );
-			}
+		if ( pSmart->iRefCount <= 0 )
+		{
+			iRetCode = pSmart->on_close( pSmart );
 		}
 	}
 
