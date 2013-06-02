@@ -33,8 +33,6 @@ int32_t operator_init( CPine *pPine )
 	{
 		memset( pPine, 0x00, sizeof(*pPine) );
 
-		pPine->on_destory = on_pine_destory;
-
 		pPine->pm_Base = create_smart( pPine, on_pine_close );
 		if ( pPine->pm_Base )
 			iRetCode = 0;
@@ -76,7 +74,6 @@ static int32_t on_pine_destory( CPine *pPine )
 {
 	int32_t iRetCode = -1;
 
-	//log_print( "on_pine_destory:--------------------->" );
 	if ( pPine )
 	{
 		int32_t (*on_destory_child)( CPine *pPine ) = NULL;
@@ -86,7 +83,6 @@ static int32_t on_pine_destory( CPine *pPine )
 			memcpy( &on_destory_child, CHILD_ADDR_OF_PINE(pPine), sizeof(on_destory_child) );
 			if ( on_destory_child )
 			{
-	//			log_print( "on_destory_child-->%u", on_destory_child );
 				on_destory_child( pPine );
 			}
 		}
@@ -94,7 +90,6 @@ static int32_t on_pine_destory( CPine *pPine )
 		iRetCode = 0;
 	}
 
-	//log_print( "on_pine_destory<-----------------------" );
 
 	return iRetCode;
 }
@@ -104,8 +99,6 @@ static int32_t on_pine_close( void *pData )
 	int32_t iRetCode = -1;
 	CSmart *pSmart = (CSmart *)pData;
 
-	//log_print( "on_pine_close:----------------->" );
-
 	if ( pSmart )
 	{
 		CPine *pPine = (CPine *)pSmart->pData;
@@ -113,11 +106,9 @@ static int32_t on_pine_close( void *pData )
 		mem_free( pSmart );
                 pSmart = NULL;
 
-		if ( pPine && pPine->on_destory )
-			iRetCode = pPine->on_destory( pPine );
+		iRetCode = on_pine_destory( pPine );
 	}
 
-	//log_print( "on_pine_close<---------------------" );
 
 	return iRetCode;
 }

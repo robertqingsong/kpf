@@ -12,13 +12,11 @@ extern "C"
 //pine define.
 typedef struct CPine_t
 {
-	int32_t (*on_destory)( struct CPine_t *pPine );
 	void *pm_Base;
 	int32_t m_iHasChild;
 }CPine;
 
 #define EXTENDS_PINE \
-	int32_t (*on_destory)( CPine *pPine ); \
 	void *pm_Base;	\
 	int32_t m_iHasChild;
 
