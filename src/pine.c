@@ -120,7 +120,6 @@ static CSmart *create_smart( void *pData, int32_t (*close_callback)( void *pData
 	pRetCode = mem_malloc( sizeof(*pRetCode) );
 	if ( pRetCode )
 	{
-		log_print( "pSmart->%u", pRetCode );
 		memset( pRetCode, 0x00, sizeof(*pRetCode) );
 
 		pRetCode->pData = pData;
