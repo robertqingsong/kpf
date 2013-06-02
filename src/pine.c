@@ -16,7 +16,7 @@ typedef struct CSmart_t
 
 static CSmart *create_smart( void *pData, int32_t (*close_callback)( void *pSmart ) );
 
-static int32_t copy_smart( CSmart *pDestSmart, CSmart *pSrcSmart );
+static int32_t retain_smart( CSmart *pSrcSmart );
 
 static int32_t release_smart( CSmart *pSmart );
 
@@ -52,7 +52,7 @@ CPine *operator_den( CPine *pPineSrc )
 	{
 		pRetCode = pPineSrc;
 
-		if ( copy_smart( pRetCode->pm_Base, pPineSrc->pm_Base ) < 0 )
+		if ( retain_smart( pPineSrc->pm_Base ) < 0 )
 			pRetCode = NULL;
 	}
 
@@ -141,15 +141,13 @@ static CSmart *create_smart( void *pData, int32_t (*close_callback)( void *pData
 	return pRetCode;
 }
 
-static int32_t copy_smart( CSmart *pDestSmart, CSmart *pSrcSmart )
+static int32_t retain_smart( CSmart *pSmart )
 {
 	int32_t iRetCode = -1;
 
-	if ( pSrcSmart )
+	if ( pSmart )
 	{
-		pDestSmart = pSrcSmart;
-		
-		(pDestSmart->iRefCount)++;
+		(pSmart->iRefCount)++;
 		iRetCode = 0;
 
 	}
