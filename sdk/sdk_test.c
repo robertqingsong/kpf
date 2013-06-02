@@ -127,7 +127,7 @@ int32_t release_person( void *pPerson )
 {
 	int32_t iRetCode = -1;
 
-	log_print( "person destory..............\r\n" );
+	log_print( "release_person:-------------------->" );
 
 	log_print( "pPerson-->%u", pPerson );
 
@@ -149,6 +149,8 @@ int32_t release_person( void *pPerson )
 
 		pPerson = NULL;
 	}
+	
+	log_print( "release_person<---------------------------------" );
 
 	return iRetCode;
 }
