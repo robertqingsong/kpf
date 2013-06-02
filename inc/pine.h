@@ -12,11 +12,13 @@ extern "C"
 //pine define.
 typedef struct CPine_t
 {
+	int32_t m_iId;
 	void *pm_Base;
 	int32_t m_iHasChild;
 }CPine;
 
 #define EXTENDS_PINE \
+	int32_t m_iId;	\
 	void *pm_Base;	\
 	int32_t m_iHasChild;
 
@@ -24,13 +26,13 @@ typedef struct CPine_t
 	((int8u_t *)( ((int8u_t *)pine) + sizeof(CPine) ))
 
 //init pine.
-int32_t operator_init( CPine *pPine );
+int32_t pine_init( CPine *pPine );
 
 //copy pine
-CPine *operator_den( CPine *pPineSrc );
+CPine *pine_den( CPine *pPineSrc );
 
 //release.
-int32_t operator_release( CPine *pPine );
+int32_t pine_release( CPine *pPine );
 
 //
 
