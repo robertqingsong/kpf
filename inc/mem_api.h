@@ -8,13 +8,26 @@
 #ifndef __MEM_API_H__
 #define __MEM_API_H__
 
-#ifdef (__cplusplus)
+
+#if defined(__cplusplus)
 extern "C"
 {
 #endif
 
 
-#ifdef (__cplusplus)
+#if (__OS_LINUX__)
+
+#if (KERNEL_DEV_SUPPORT)
+#define mem_malloc kmalloc
+#define mem_free kfree
+#else
+#define mem_malloc  malloc
+#define mem_free free
+#endif
+
+#endif
+
+#if defined(__cplusplus)
 }
 #endif
 

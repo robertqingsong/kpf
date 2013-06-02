@@ -6,6 +6,10 @@
 
 #include "../inc/log.h"
 
+#include "../inc/oal_api.h"
+
+#include "../inc/hash.h"
+
 //smart type define.
 typedef struct CSmart_t
 {
@@ -13,6 +17,13 @@ typedef struct CSmart_t
 	void *pData;
 	int32_t (*on_close)( void *pData );
 }CSmart;
+
+//pine file global locker define.
+static CMutex fg_PineMutex;
+//flag for initialize.
+static int32_t fg_iInitFlag = 0;
+//hash table for pine manmagement.
+
 
 static CSmart *create_smart( void *pData, int32_t (*close_callback)( void *pSmart ) );
 
@@ -25,10 +36,19 @@ static int32_t on_pine_close( void *pData );
 
 static int32_t on_pine_destory( CPine *pPine );
 
-int32_t operator_init( CPine *pPine )
+static int32_t is_pine_ready( void );
+static int32_t init( void );
+
+int32_t pine_init( CPine *pPine )
 {
 	int32_t iRetCode = -1;
 
+	if ( is_pine_ready() < 0 )
+		if ( init() < 0 )
+			return iRetCode;
+
+	lock( &fg_PineMutex );
+	
 	if ( pPine )
 	{
 		memset( pPine, 0x00, sizeof(*pPine) );
@@ -38,13 +58,21 @@ int32_t operator_init( CPine *pPine )
 			iRetCode = 0;
 	}
 
+	unlock( &fg_PineMutex );
+
 	return iRetCode;
 }
 
 //copy pine
-CPine *operator_den( CPine *pPineSrc )
+CPine *pine_den( CPine *pPineSrc )
 {
 	CPine *pRetCode = NULL;
+
+        if ( is_pine_ready() < 0 )
+		if ( init() < 0 )
+			return pRetCode;
+
+	lock( &fg_PineMutex );
 
 	if ( pPineSrc )
 	{
@@ -54,18 +82,28 @@ CPine *operator_den( CPine *pPineSrc )
 			pRetCode = NULL;
 	}
 
+	unlock( &fg_PineMutex );
+
 	return pRetCode;
 }
 
 //release.
-int32_t operator_release( CPine *pPine )
+int32_t pine_release( CPine *pPine )
 {
 	int32_t iRetCode = -1;
+
+        if ( is_pine_ready() < 0 )
+		if ( init() < 0 )
+			return iRetCode;
+
+	lock( &fg_PineMutex );
 
 	if ( pPine )
 	{
 		iRetCode = release_smart( pPine->pm_Base );
 	}
+
+	unlock( &fg_PineMutex );
 
 	return iRetCode;
 }
@@ -158,6 +196,30 @@ static int32_t release_smart( CSmart *pSmart )
 			iRetCode = pSmart->on_close( pSmart );
 		}
 	}
+
+	return iRetCode;
+}
+
+static int32_t is_pine_ready( void )
+{
+	int32_t iRetCode = -1;
+	
+	if ( fg_iInitFlag )
+		iRetCode = 0;
+
+	return iRetCode;
+}
+
+static int32_t init( void )
+{
+	int32_t iRetCode = -1;
+
+	if ( !fg_iInitFlag )
+	{
+		iRetCode = init_mutex( &fg_PineMutex );	
+	}
+	else
+		iRetCode = 0;
 
 	return iRetCode;
 }

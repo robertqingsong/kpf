@@ -15,6 +15,8 @@ extern "C"
 {
 #endif
 
+#define CONTAINER_OF(addr, member, type) \
+	( ( type * ) ( (unsigned char *)addr - (unsigned char *)&(((type *)0)->member) ) )
 
 #if defined(__cplusplus)
 }

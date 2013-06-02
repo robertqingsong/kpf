@@ -8,13 +8,13 @@
 #ifndef __OAL_API_H__
 #define __OAL_API_H__
 
-#ifdef (__cplusplus)
+#if defined(__cplusplus)
 extern "C"
 {
 #endif
 
 
-#ifdef (__cplusplus)
+#if defined(__cplusplus)
 }
 #endif
 

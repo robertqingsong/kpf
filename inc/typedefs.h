@@ -19,7 +19,7 @@ extern "C"
 #if (KERNEL_DEV_SUPPORT)
 
 #else
-typedef char int8_t;
+//typedef char int8_t;
 #endif
 
 typedef unsigned char int8u_t;

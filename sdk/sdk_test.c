@@ -52,7 +52,7 @@ CChinese *create_chinese( void )
 	pRetCode = mem_malloc( sizeof(*pRetCode) );
 	if ( pRetCode )
 	{
-		if ( operator_init( (CPine *)pRetCode ) >= 0 )
+		if ( pine_init( (CPine *)pRetCode ) >= 0 )
 		{
 			pRetCode->on_destory_child = release_person;
 
@@ -103,7 +103,7 @@ CPerson *create_person( void )
 	pRetCode = (CPerson *)mem_malloc( sizeof( *pRetCode ) );
 	if ( pRetCode )
 	{
-		if ( operator_init( (CPine *)pRetCode ) >= 0 )
+		if ( pine_init( (CPine *)pRetCode ) >= 0 )
 		{
 			pRetCode->on_destory_child = release_person;
 
@@ -169,13 +169,13 @@ int main( int argc, char **argv )
 	pMe = create_chinese( );
 	if ( pMe )
 	{
-		CChinese *pMe2 = (CChinese *)operator_den( (CPine *)pMe );
+		CChinese *pMe2 = (CChinese *)pine_den( (CPine *)pMe );
 		if ( pMe2 )
 		{
-			operator_release( (CPine *)pMe2 );
+			pine_release( (CPine *)pMe2 );
 		}
 
-		operator_release( (CPine *)pMe );
+		pine_release( (CPine *)pMe );
 	}
 #if 0
 	pMe = create_person();

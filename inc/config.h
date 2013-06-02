@@ -8,13 +8,12 @@
 #ifndef __CONFIG_H__
 #define __CONFIG_H__
 
-#define KERNEL_DEV_SUPPORT  (1)
+#define KERNEL_DEV_SUPPORT  (0)
 
 #if (KERNEL_DEV_SUPPORT)
 
 #include <linux/init.h>
 #include <linux/module.h>
-MODULE_LICENSE( "dUAL bsd/gpl" );
 
 #else
 #include <stdio.h>
@@ -31,8 +30,8 @@ extern "C"
 /*************************************************
  * OS Type Config.
  * ***********************************************/
-#define __OS_WIN32__  (1)//is windows platform.
-#define __OS_LINUX__  (0)//is linux platform.
+#define __OS_WIN32__  (0)//is windows platform.
+#define __OS_LINUX__  (1)//is linux platform.
 #define __OS_MAC__  (0)//is mac platform.
 #define __OS_IOS__  (0)//is ios platform.
 #define __OS_ANDROID__  (0)//is android platform.

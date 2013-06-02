@@ -18,6 +18,7 @@ extern "C"
 //list node type define.
 typedef struct CListNode_t
 {
+	void *pData;
 	struct CListNode_t *Prev;
 	struct CListNode_t *Next;	
 }CListNode;
