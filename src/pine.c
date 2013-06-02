@@ -76,22 +76,25 @@ static int32_t on_pine_destory( CPine *pPine )
 {
 	int32_t iRetCode = -1;
 
-	log_print( "on_pine_destory:--------------------->" );
+	//log_print( "on_pine_destory:--------------------->" );
 	if ( pPine )
 	{
 		int32_t (*on_destory_child)( CPine *pPine ) = NULL;
-
-		memcpy( &on_destory_child, CHILD_ADDR_OF_PINE(pPine), sizeof(on_destory_child) );
-		if ( on_destory_child )
+		
+		if ( pPine->m_iHasChild )
 		{
-			log_print( "on_destory_child-->%u", on_destory_child );
-			on_destory_child( pPine );
+			memcpy( &on_destory_child, CHILD_ADDR_OF_PINE(pPine), sizeof(on_destory_child) );
+			if ( on_destory_child )
+			{
+	//			log_print( "on_destory_child-->%u", on_destory_child );
+				on_destory_child( pPine );
+			}
 		}
 
 		iRetCode = 0;
 	}
 
-	log_print( "on_pine_destory<-----------------------" );
+	//log_print( "on_pine_destory<-----------------------" );
 
 	return iRetCode;
 }
@@ -101,7 +104,7 @@ static int32_t on_pine_close( void *pData )
 	int32_t iRetCode = -1;
 	CSmart *pSmart = (CSmart *)pData;
 
-	log_print( "on_pine_close:----------------->" );
+	//log_print( "on_pine_close:----------------->" );
 
 	if ( pSmart )
 	{
@@ -114,7 +117,7 @@ static int32_t on_pine_close( void *pData )
 			iRetCode = pPine->on_destory( pPine );
 	}
 
-	log_print( "on_pine_close<---------------------" );
+	//log_print( "on_pine_close<---------------------" );
 
 	return iRetCode;
 }

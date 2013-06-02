@@ -14,11 +14,13 @@ typedef struct CPine_t
 {
 	int32_t (*on_destory)( struct CPine_t *pPine );
 	void *pm_Base;
+	int32_t m_iHasChild;
 }CPine;
 
 #define EXTENDS_PINE \
 	int32_t (*on_destory)( CPine *pPine ); \
-	void *pm_Base;
+	void *pm_Base;	\
+	int32_t m_iHasChild;
 
 #define CHILD_ADDR_OF_PINE(pine) \
 	((int8u_t *)( ((int8u_t *)pine) + sizeof(CPine) ))
