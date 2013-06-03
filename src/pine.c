@@ -327,12 +327,18 @@ static int32_t create_pine_node( CPine *pPine )
 				if ( add_btree_node( fg_PineManager.pPineBTree, &(pPineNode->BTNode) ) >= 0 )
 					iRetCode = 0;	
 			}
-		}
 
-		if ( iRetCode < 0 )
-		{
-			mem_free( pPineNode );
-			pPineNode = NULL;
+			if ( iRetCode < 0 )
+			{
+				if ( pPineNode->pm_Base )
+				{
+					mem_free( pPineNode->pm_Base );
+					pPineNode->pm_Base = NULL;					
+				}
+				
+				mem_free( pPineNode );
+				pPineNode = NULL;
+			}
 		}
 	}
 
