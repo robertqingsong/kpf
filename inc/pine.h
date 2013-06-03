@@ -12,15 +12,11 @@ extern "C"
 //pine define.
 typedef struct CPine_t
 {
-	int32_t m_iId;
-	void *pm_Base;
-	int32_t m_iHasChild;
+	int32_t m_iSaved;
 }CPine;
 
 #define EXTENDS_PINE \
-	int32_t m_iId;	\
-	void *pm_Base;	\
-	int32_t m_iHasChild;
+	CPine PineSuper;
 
 #define CHILD_ADDR_OF_PINE(pine) \
 	((int8u_t *)( ((int8u_t *)pine) + sizeof(CPine) ))
