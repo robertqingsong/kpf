@@ -21,8 +21,6 @@ typedef struct CBTree_t
 {
 	void *pBTreeTbl;
 	
-	int64u_t iCurrentWaterLevel;
-	
 	CMutex Locker;
 }CBTree;
 

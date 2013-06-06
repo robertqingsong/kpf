@@ -8,6 +8,7 @@
 #ifndef __MEM_API_H__
 #define __MEM_API_H__
 
+#include "config.h"
 
 #if defined(__cplusplus)
 extern "C"

@@ -37,7 +37,7 @@ int32u_t os_thread_create( os_thread_t thread, void *pParam,
 int32_t os_thread_wait( int32u_t iThreadId );
 
 //sleep api.
-void os_sleep( int32_t iTimeInMileSeconds );
+void os_sleep( int32_t iTimeInSeconds );
 
 #if defined(__cplusplus)
 }

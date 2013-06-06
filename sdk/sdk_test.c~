@@ -371,7 +371,7 @@ void *test( void *pParam )
 	while ( 1 )
 	{
 		iCounter++;
-	//	printf( "counter-->%d\r\n", iCounter );		
+		printf( "counter-->%d\r\n", iCounter );		
 		
 		os_sleep( 10 );
 		

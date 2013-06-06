@@ -29,6 +29,8 @@
 #include <string.h>
 #include "avl.h"
 
+#include "../inc/mem_api.h"
+
 /* Creates and returns a new table
    with comparison function |compare| using parameter |param|
    and memory allocator |allocator|.
@@ -849,7 +851,7 @@ void *
 avl_malloc (struct libavl_allocator *allocator, size_t size)
 {
   assert (allocator != NULL && size > 0);
-  return malloc (size);
+  return mem_malloc (size);
 }
 
 /* Frees |block|. */
@@ -857,7 +859,7 @@ void
 avl_free (struct libavl_allocator *allocator, void *block)
 {
   assert (allocator != NULL && block != NULL);
-  free (block);
+  mem_free (block);
 }
 
 /* Default memory allocator that uses |malloc()| and |free()|. */

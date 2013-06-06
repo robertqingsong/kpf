@@ -131,10 +131,8 @@ CBTreeNode *search_btree_node( CBTree *pBTree, int64u_t iBTNodeId )
 		
 		lock( &( pBTree->Locker ) );
 
-		log_print( "btree water level->%d", pBTree->iCurrentWaterLevel );
 		pOpRet = avl_find( pBTree->pBTreeTbl, (const void *)iBTNodeId );
-		log_print( "btree water level->%d", pBTree->iCurrentWaterLevel );
-		
+
 		if ( pOpRet )
 			pRetCode = (CBTreeNode *)pOpRet;
 	

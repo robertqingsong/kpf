@@ -23,6 +23,9 @@ typedef struct CListNode_t
 	struct CListNode_t *Next;	
 }CListNode;
 
+#define CONTAINER_OF_LIST(addr, type) \
+	CONTAINER_OF( addr, LNode, type )
+
 //front insert node to list.
 int32_t insert_list_head_front( CListNode **ppListHead, CListNode *pNewNode );
 //rear insert node to list.
