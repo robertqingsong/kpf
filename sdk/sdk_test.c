@@ -1,3 +1,4 @@
+#if 0
 #include "log.h"
 
 #include "queue.h"
@@ -229,4 +230,100 @@ int main( int argc, char **argv )
 #endif
 	return 0;
 }
+
+#endif
+
+#include "pine.h"
+
+#include "mem_api.h"
+
+#include "log.h"
+
+typedef struct CPerson_t
+{
+	EXTENDS_PINE
+	
+	int32_t m_iAge;
+	int8_t pm_Name[32];
+	int8_t pm_Sex[2];
+}CPerson;
+
+void init_person( CPine *pPine )
+{
+	printf( "init_person:---------------->\r\n" );
+	
+	printf( "init_person end<---------------\r\n" );
+}
+
+void release_person( CPine *pPine )
+{
+	printf( "release_person:------------------->\r\n" );
+
+	printf( "release_person end<--------------------\r\n" );	
+}
+
+void init_person2( CPine *pPine )
+{
+	printf( "init_person2:---------------->\r\n" );
+	
+	printf( "init_person2 end<---------------\r\n" );
+}
+
+void release_person2( CPine *pPine )
+{
+	printf( "release_person2:------------------->\r\n" );
+
+	printf( "release_person2 end<--------------------\r\n" );	
+}
+
+
+////add pine method fron base to child.
+//int32_t add_pine_method( CPineMethod *pHeadMethod, CPineMethod *pNewMethod );
+
+int main( int argc, char **argv )
+{
+	CPerson *pPerson = (CPerson *)create_pine( sizeof(*pPerson) );
+
+	printf( "main:---------------------->\r\n" );
+	
+	enable_log( 1 );
+	set_log( LOG_TYPE_CONSOLE, NULL, 0 );
+	
+	if ( pPerson )
+	{
+		CPineMethod *pMethod = NULL, method, method2;
+		
+		//base method.
+		memset( &method, 0x00, sizeof( method ) );
+		method.init = init_person;
+		method.release = release_person;
+		
+		add_pine_method( &pMethod, &method );
+		
+		//child method.
+		memset( &method2, 0x00, sizeof( method2 ) );
+		method2.init = init_person2;
+		method2.release = release_person2;
+		add_pine_method( &pMethod, &method2 );
+		
+		printf( "start to init pine......................\r\n" );
+		if ( pine_init( (CPine *)pPerson, pMethod ) >= 0 )
+		{
+			printf( "pine_init call ok...............\r\n" );
+			
+			printf( "start to release person.............\r\n" );
+			pine_release( (CPine *)pPerson );
+		}
+		else 
+			printf( "pine_init failed???????????????????????\r\n" );
+	}
+	else
+		printf( "pPerson is NULL?????????????????????????\r\n" );
+	
+	printf( "main<----------------------------\r\n" );
+	
+	return 0;	
+}
+
+
 
