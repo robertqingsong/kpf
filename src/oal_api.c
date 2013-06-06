@@ -232,6 +232,7 @@ static int32_t init_thread_manager( void )
 	{
 		if ( init_mutex( &( fg_ThreadManager.Locker ) ) >= 0 )
 		{
+			lock( &( fg_ThreadManager.Locker ) );
 			fg_ThreadManager.pThreadTree = create_btree( thread_btree_comp );
 			if ( fg_ThreadManager.pThreadTree )
 			{
@@ -239,6 +240,7 @@ static int32_t init_thread_manager( void )
 
 				iRetCode = 0;
 			}
+			unlock( &( fg_ThreadManager.Locker ) );
 		}
 	}
 	else
