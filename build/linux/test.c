@@ -25,7 +25,7 @@ int main( int argc, char **argv )
 	return 0;
 }
 
-#else
+#elif 0
 
 
 #include "btree.h"
@@ -137,6 +137,80 @@ int main( int argc, char **argv )
 	return 0;
 }
 
+#else
+
+#include "hash.h"
+
+typedef struct CTestElem_t
+{
+	CHashElem HElem;
+
+	int i;
+}CTestElem;
+
+int main( int argc, char **argv )
+{
+	CHashTbl tbl;
+
+	if ( init_hash_tbl( &tbl, 1024 ) >= 0 )
+	{
+		CTestElem elem1, elem2;
+
+		memset( &elem1, 0x00, sizeof(elem1)) ;
+		elem1.i = 100;
+		elem1.HElem.m_iHashId = 100;
+
+		if ( insert_hash_tbl( &tbl, &( elem1.HElem ) ) >= 0 )
+		{
+			printf( "insert hash elem1 ok..................\r\n" );
+		}
+		else
+			printf( "insert hash elem 1 failed????????????????????\r\n") ;
+
+		memset( &elem2, 0x00, sizeof(elem2) );
+		elem2.i = 500;
+		elem2.HElem.m_iHashId = 1024 * 100;
+		if ( insert_hash_tbl( &tbl, &( elem2.HElem ) )  >= 0 )
+			printf( "insert hash elel2 ok...................\r\n");
+		else
+			printf( "insert hash elem2 failed?????????????????\r\n") ;
+
+		{
+
+		CHashElem *pElem1 = search_hash_tbl( &tbl, 100 );
+		if ( pElem1 )
+		{
+			CTestElem *pTestElem1 = CONTAINER_OF_HASH( pElem1, CTestElem );
+			printf( "search elem1 ok...............\r\n" );
+
+			printf( "elem1 i-->%d.\r\n", pTestElem1->i );
+
+		}
+		else
+			printf( "search elem 1 failed???????????????????????????\r\n" );
+		}
+
+		{
+
+		CHashElem *pElem2 = search_hash_tbl( &tbl, 1024 * 100 );
+		if ( pElem2 )
+		{
+			CTestElem *pTestElem2 = CONTAINER_OF_HASH( pElem2, CTestElem );
+
+			printf( "search elem 2 ok................\r\n" );
+			printf( "elem2 i-->%d.\r\n", pTestElem2->i );
+		}
+		else
+			printf( "search elem2 failed????????????????????\r\n" );
+
+		}
+
+		release_hash_tbl( &tbl );
+
+	}
+
+	return 0;
+}
 
 #endif
 
