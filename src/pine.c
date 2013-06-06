@@ -20,12 +20,6 @@ typedef struct CSmart_t
 	int32_t (*on_close)( void *pData );
 }CSmart;
 
-typedef struct CDestory_t
-{
-	
-	CListNode LNode;
-}CDestory;
-
 //pine node for btree.
 typedef struct CPineNode_t
 {
@@ -35,7 +29,7 @@ typedef struct CPineNode_t
         int32_t m_iSizeOfChild;//child's size.
         int32_t m_iResolved;//resolved.
 
-	CDestory *pDestroyHead;
+	CPineMethod *pPineMethod;
 
 	CBTreeNode BTNode;
 }CPineNode;
@@ -74,30 +68,108 @@ static int32_t pine_btree_comp( const void *pValA, const void *pValB, void *pPar
 static CPineNode *search_pine_node( CPine *pPine );
 
 //create pine btree node.
-static int32_t create_pine_node( CPine *pPine );
+static int32_t create_pine_node( CPine *pPine, CPineMethod *pMethod );
 
 //destory pine node.
 static int32_t destory_pine_node( CPine *pPine );
 
-int32_t pine_init( CPine *pPine )
+//---------------------------------------------------------------------------------------------->
+int8u_t *create_pine( int32_t iSizeOfPine )
+{
+	int8u_t *pRetCode = NULL;
+
+	if ( iSizeOfPine > 0 )
+	{
+			pRetCode = mem_malloc( iSizeOfPine + 8 );
+			if ( pRetCode )
+			{
+				memset( pRetCode, 0x00, iSizeOfPine + 8 );
+				
+				pRetCode = pRetCode + 8;
+			}
+			else 
+				log_print( "%s %s-%d: !if ( pRetCode ) failed ????????????????????\r\n", __FILE__, __FUNCTION__, __LINE__ );
+	}
+	else 
+		log_print( "%s %s-%d: !if ( iSizeOfPine > 0 ) failed ????????????????????\r\n", __FILE__, __FUNCTION__, __LINE__ );
+	
+	return pRetCode;	
+}
+
+//destroy pine memory.
+static void destroy_pine( int8u_t *pPineMem )
+{
+	if ( pPineMem )
+	{
+		log_print( "%s %s-%d: destroy pine, memory addr->%u\r\n", __FILE__, __FUNCTION__, __LINE__, pPineMem );
+		
+		mem_free( pPineMem - 8 );
+		
+		pPineMem = NULL;
+	}
+	else 
+		log_print( "%s %s-%d: !if ( pPineMem ) failed ????????????????????\r\n", __FILE__, __FUNCTION__, __LINE__ );
+}
+
+//add pine methods.
+int32_t add_pine_method( CPineMethod **ppHeadMethod, CPineMethod *pNewMethod )
+{
+	int32_t iRetCode = -1;
+
+	if ( ppHeadMethod && pNewMethod )
+	{
+		pNewMethod->LNode.Prev = pNewMethod->LNode.Next = NULL;
+		if ( *ppHeadMethod )
+		{
+			CListNode *pMethodHeadLNode = &( ( *(ppHeadMethod) )->LNode );
+			
+			iRetCode = insert_list_head_front( &pMethodHeadLNode, &( pNewMethod->LNode ) );
+			if ( iRetCode >= 0 )
+			{
+				*ppHeadMethod = CONTAINER_OF_LIST( pMethodHeadLNode, CPineMethod );
+			}
+			else 
+				log_print( "%s %s-%d: !if ( iRetCode >= 0 ) failed ????????????????????\r\n", __FILE__, __FUNCTION__, __LINE__ );
+		}
+		else
+		{
+			*ppHeadMethod = pNewMethod;
+			
+			iRetCode = 0;
+		}
+	}
+	else 
+		log_print( "%s %s-%d: !if ( ppHeadMethod && pNewMethod ) failed ????????????????????\r\n", __FILE__, __FUNCTION__, __LINE__ );
+
+	return iRetCode;
+}
+
+int32_t pine_init( CPine *pPine, CPineMethod *pMethod )
 {
 	int32_t iRetCode = -1;
 
 	if ( is_pine_ready() < 0 )
 		if ( init() < 0 )
+		{
+			log_print( "%s %s-%d: if ( init() < 0 ) failed ????????????????????\r\n", __FILE__, __FUNCTION__, __LINE__ );
 			return iRetCode;
+		}
 
 	lock( &( fg_PineManager.Locker ) );
 	
 	if ( pPine )
 	{
-		memset( pPine, 0x00, sizeof(*pPine) );
 		
-		if ( create_pine_node( pPine ) )
+		if ( create_pine_node( pPine, pMethod) >= 0 )
 		{
+			log_print( "pine_init ok, pPine->%u", pPine );
 			iRetCode = 0;
 		}
+		else 
+			log_print( "%s %s-%d: !if ( create_pine_node( failed ????????????????????\r\n", __FILE__, __FUNCTION__, __LINE__ );
 	}
+	else 
+		log_print( "%s %s-%d: !if ( pPine ) failed ????????????????????\r\n", __FILE__, __FUNCTION__, __LINE__ );
 
 	unlock( &( fg_PineManager.Locker ) );
 
@@ -111,7 +183,10 @@ CPine *pine_den( CPine *pPineSrc )
 
    if ( is_pine_ready() < 0 )
 		if ( init() < 0 )
+		{
+			log_print( "if ( init() < 0 ) failed?????????????????????????" );
 			return pRetCode;
+		}
 
 	lock( &( fg_PineManager.Locker ) );
 
@@ -124,11 +199,18 @@ CPine *pine_den( CPine *pPineSrc )
 		if ( pPineNode )
 		{
 			if ( retain_smart( pPineNode->pm_Base ) < 0 )
+			{
+				log_print( "!if ( retain_smart( pPineNode->pm_Base ) < 0 ) failed????????????????????????????" );
 				pRetCode = NULL;
+			}
 			else
 				pRetCode = pPineSrc;
 		}
+		else 
+			log_print( "!if ( pPineNode ) failed????????????????????????" );
 	}
+	else 
+		log_print( "%s %s-%d: !if ( pPineSrc ) failed ????????????????????\r\n", __FILE__, __FUNCTION__, __LINE__ );
 
 	unlock( &( fg_PineManager.Locker ) );
 
@@ -140,9 +222,12 @@ int32_t pine_release( CPine *pPine )
 {
 	int32_t iRetCode = -1;
 
-        if ( is_pine_ready() < 0 )
+   if ( is_pine_ready() < 0 )
 		if ( init() < 0 )
+		{
+			log_print( "if ( init() < 0 )????????????????\r\n" );
 			return iRetCode;
+		}
 
 	lock( &( fg_PineManager.Locker ) );
 
@@ -150,11 +235,21 @@ int32_t pine_release( CPine *pPine )
 	{
 		CPineNode *pPineNode = NULL;
 		
+		//log_print( "%s %s-%d: pine_release:------------------------->\r\n", __FILE__, __FUNCTION__, __LINE__ );
+
+		log_print( "pine_release: pPine->%u", pPine );		
+		
 		pPineNode = search_pine_node( pPine );
 		
 		if ( pPineNode )
+		{
 			iRetCode = release_smart( pPineNode->pm_Base );
+		}
+		else 
+			log_print( "!if ( pPineNode ) failed???????????????????????" );
 	}
+	else 
+		log_print( "%s %s-%d: !if ( pPine ) failed ????????????????????\r\n", __FILE__, __FUNCTION__, __LINE__ );
 
 	unlock( &( fg_PineManager.Locker ) );
 
@@ -168,27 +263,46 @@ static int32_t on_pine_destory( CPine *pPine )
 	if ( pPine )
 	{
 		CPineNode *pPineNode = NULL;
-		int32_t (*on_destory_child)(CPine *pPine ) = NULL;
 		
 		pPineNode = search_pine_node( pPine );
 		//release resource.call destruct.
-		
-		destory_pine_node( pPine );
-
-#if 0
-		if ( pPine->m_iHasChild )
+		if ( pPineNode && pPineNode->pPineMethod )
 		{
-			memcpy( &on_destory_child, CHILD_ADDR_OF_PINE(pPine), sizeof(on_destory_child) );
-			if ( on_destory_child )
+			CPineMethod *pTempMethod = NULL;
+			CListNode *pTempMethodLNode = &( pPineNode->pPineMethod->LNode );
+			CListNode *pMethodHeadLNode = NULL;
+			
+			pTempMethodLNode = pTempMethodLNode->Prev;
+			pMethodHeadLNode = pTempMethodLNode;
+			while ( pTempMethodLNode )
 			{
-				on_destory_child( pPine );
+				pTempMethod = CONTAINER_OF_LIST( pTempMethodLNode, CPineMethod );
+				
+				if ( pTempMethod && pTempMethod->release )
+					pTempMethod->release( pPine );
+						
+				if ( pTempMethodLNode->Prev != pMethodHeadLNode )
+							pTempMethodLNode = pTempMethodLNode->Prev;
+				else
+				{
+					pTempMethodLNode = NULL;								
+				}
+						
+				mem_free( pTempMethod );
+				pTempMethod = NULL;
 			}
 		}
-#endif
+		else 
+			log_print( "%s %s-%d: !if ( pPineNode && pPineNode->p failed ????????????????????\r\n", __FILE__, __FUNCTION__, __LINE__ );
+		
+		destory_pine_node( pPine );
+		
+		destroy_pine( (int8u_t *)pPine );
 
 		iRetCode = 0;
 	}
-
+	else 
+		log_print( "%s %s-%d: !if ( pPine ) failed ????????????????????\r\n", __FILE__, __FUNCTION__, __LINE__ );
 
 	return iRetCode;
 }
@@ -203,11 +317,12 @@ static int32_t on_pine_close( void *pData )
 		CPine *pPine = (CPine *)pSmart->pData;
                 
 		mem_free( pSmart );
-                pSmart = NULL;
+      pSmart = NULL;
 
 		iRetCode = on_pine_destory( pPine );
 	}
-
+	else 
+		log_print( "%s %s-%d: !if ( pSmart ) failed ????????????????????\r\n", __FILE__, __FUNCTION__, __LINE__ );
 
 	return iRetCode;
 }
@@ -226,6 +341,8 @@ static CSmart *create_smart( void *pData, int32_t (*close_callback)( void *pData
 		pRetCode->iRefCount = 1;
 		
 	}
+	else 
+		log_print( "%s %s-%d: !if ( pRetCode ) failed ????????????????????\r\n", __FILE__, __FUNCTION__, __LINE__ );
 
 	return pRetCode;
 }
@@ -240,6 +357,8 @@ static int32_t retain_smart( CSmart *pSmart )
 		iRetCode = 0;
 
 	}
+	else 
+		log_print( "%s %s-%d: !if ( pSmart ) failed ????????????????????\r\n", __FILE__, __FUNCTION__, __LINE__ );
 
 	return iRetCode;
 }
@@ -252,11 +371,15 @@ static int32_t release_smart( CSmart *pSmart )
 	{
 		(pSmart->iRefCount)--;
 
+		log_print( "%s %s-%d: smart ref count-->%d\r\n", __FILE__, __FUNCTION__, __LINE__, pSmart->iRefCount );
+
 		if ( pSmart->iRefCount <= 0 )
 		{
 			iRetCode = pSmart->on_close( pSmart );
 		}
 	}
+	else 
+		log_print( "%s %s-%d: !if ( pSmart ) failed ????????????????????\r\n", __FILE__, __FUNCTION__, __LINE__ );
 
 	return iRetCode;
 }
@@ -285,8 +408,12 @@ static int32_t init( void )
 
 			fg_PineManager.pPineBTree = create_btree( pine_btree_comp );
 
+			log_print( "init: fg_PineManager.pPineBTree->%u", fg_PineManager.pPineBTree );
 			if ( fg_PineManager.pPineBTree )
+			{
+				fg_PineManager.iInitFlag = 1;
 				iRetCode = 0;
+			}
 
 			unlock( &( fg_PineManager.Locker ) );
 		}
@@ -301,35 +428,155 @@ static int32_t pine_btree_comp( const void *pValA, const void *pValB, void *pPar
 {
 	int32_t iRetCode = -1;
 
+	if ( pValA && pValB )
+	{
+		int64u_t A = (int64u_t)pValA, B = (int64u_t)pValB;
+		
+		if ( A > B )
+			iRetCode = 1;
+		else if ( A < B )
+			iRetCode = -1;
+		else 
+			iRetCode = 0;
+	}
+	else 
+		log_print( "%s %s-%d: !if ( pValA && pValB ) failed ????????????????????\r\n", __FILE__, __FUNCTION__, __LINE__ );
 
 	return iRetCode;
 }
 
 //create pine btree node.
-static int32_t create_pine_node( CPine *pPine )
+static int32_t create_pine_node( CPine *pPine, CPineMethod *pMethod )
 {
 	int32_t iRetCode = -1;
 
-	if ( pPine )
+	if ( pPine && pMethod )
 	{
 		CPineNode *pPineNode = mem_malloc( sizeof( *pPineNode ) );
 		if ( pPineNode )
 		{
+			CPineMethod *pTempMethod = NULL, *pNewMethod = NULL;
+			CListNode *pMethodHeadLNode = NULL, *pTailMethodLNode = NULL, *pTempMethodLNode = NULL;
+				
 			memset( pPineNode, 0x00, sizeof( *pPineNode ) );
-			
+
 			pPineNode->pm_Base = create_smart( pPine, on_pine_close );
 			
 			if ( pPineNode->pm_Base )
 			{
-				//init pine btree node.
-				pPineNode->BTNode.pData = pPine;
 
-				if ( add_btree_node( fg_PineManager.pPineBTree, &(pPineNode->BTNode) ) >= 0 )
-					iRetCode = 0;	
+				pTempMethodLNode = &( pMethod->LNode );
+				while ( pTempMethodLNode )
+				{
+					pTempMethod = CONTAINER_OF_LIST( pTempMethodLNode, CPineMethod );
+					pNewMethod = mem_malloc( sizeof( *pTempMethod ) );
+					if ( pNewMethod )
+					{
+						memset( pNewMethod, 0x00, sizeof(*pNewMethod) );
+						
+						pNewMethod->init = pTempMethod->init;
+						pNewMethod->release = pTempMethod->release;
+						
+						if ( !(pPineNode->pPineMethod) )
+						{
+							pPineNode->pPineMethod = pNewMethod;
+							pTailMethodLNode = &(pNewMethod->LNode);
+						}
+						else
+						{
+								CListNode *pHeadLNode = &( pPineNode->pPineMethod->LNode );
+								
+								if ( insert_list_head_front( &pHeadLNode, &( pNewMethod->LNode ) ) >= 0 )
+								{
+									pPineNode->pPineMethod = pNewMethod;
+								}
+								else 
+								{
+									log_print( "%s %s-%d: !if ( insert_list_head_front failed ????????????????????\r\n", __FILE__, __FUNCTION__, __LINE__ );
+									
+									mem_free( pNewMethod );
+									pNewMethod = NULL;
+									
+									break ;
+								}												
+						}
+					}
+					else
+						break ;
+
+					if ( pTempMethodLNode->Next )
+						pTempMethodLNode = pTempMethodLNode->Next;
+					else 
+					{
+						pMethodHeadLNode = &(pNewMethod->LNode);
+						pTempMethodLNode = NULL;
+					}
+				}
+				
+				if ( !pTempMethodLNode )
+				{
+					if ( pMethodHeadLNode && pTailMethodLNode )
+					{
+						//ring list.
+						pMethodHeadLNode->Prev = pTailMethodLNode;
+					
+						pTailMethodLNode->Next = pMethodHeadLNode;
+					}
+					
+					memcpy( ((( int8u_t * )pPine) - 8), &pPineNode, sizeof(pPineNode) );
+					//init pine btree node.
+					if ( add_btree_node( fg_PineManager.pPineBTree, &(pPine->BTNode) ) >= 0 )
+					{
+						//call pine method to initialize pine object.
+						if ( pPineNode->pPineMethod )
+						{
+							pTempMethodLNode = &( pPineNode->pPineMethod->LNode );
+							pMethodHeadLNode = pTempMethodLNode;
+					
+							while ( pTempMethodLNode )
+							{
+								pTempMethod = CONTAINER_OF_LIST( pTempMethodLNode, CPineMethod );
+								
+								if ( pTempMethod->init )
+									pTempMethod->init( pPine );
+						
+								if ( pTempMethodLNode->Next != pMethodHeadLNode )
+									pTempMethodLNode = pTempMethodLNode->Next;
+								else
+								{
+									pTempMethodLNode = NULL;								
+								}
+							}
+						}
+						
+						iRetCode = 0;		
+					}
+				}
 			}
 
 			if ( iRetCode < 0 )
 			{
+				if ( pPineNode->pPineMethod )
+				{
+					pTempMethodLNode = &( pPineNode->pPineMethod->LNode );
+					pMethodHeadLNode = pTempMethodLNode;
+					
+					while ( pTempMethodLNode )
+					{
+						pTempMethod = CONTAINER_OF_LIST( pTempMethodLNode, CPineMethod );
+						
+						if ( pTempMethodLNode->Next != pMethodHeadLNode )
+							pTempMethodLNode = pTempMethodLNode->Next;
+						else
+						{
+							pTempMethodLNode = NULL;								
+						}
+						
+						mem_free( pTempMethod );
+						pTempMethod = NULL;
+					}
+				}	
+				
 				if ( pPineNode->pm_Base )
 				{
 					mem_free( pPineNode->pm_Base );
@@ -341,6 +588,8 @@ static int32_t create_pine_node( CPine *pPine )
 			}
 		}
 	}
+	else 
+		log_print( "%s %s-%d: !if ( pPine && pMethod ) failed ????????????????????\r\n", __FILE__, __FUNCTION__, __LINE__ );
 
 	return iRetCode;
 }
@@ -349,17 +598,15 @@ static CPineNode *search_pine_node( CPine *pPine )
 {
 	CPineNode *pRetCode = NULL;
 
-
 	if ( pPine )
-	{
-		CBTreeNode *pBTNode = NULL;
+	{	
 		
-		pBTNode = search_btree_node( fg_PineManager.pPineBTree, ( int32u_t )pPine );
-		if ( pBTNode )
-		{
-			pRetCode = CONTAINER_OF_BTNODE( pBTNode, CPineNode );
-		}
+		memcpy( &pRetCode, (((int8u_t *)pPine) - 8), sizeof( pRetCode ) );
+		if ( !pRetCode )
+			log_print( "%s %s-%d: if ( !pRetCode ) ?????????????????failed\r\n", __FILE__, __FUNCTION__, __LINE__ );
 	}
+	else 
+		log_print( "%s %s-%d: !if ( pPine ) failed ????????????????????\r\n", __FILE__, __FUNCTION__, __LINE__ );
 
 	return pRetCode;
 }
@@ -374,20 +621,31 @@ static int32_t destory_pine_node( CPine *pPine )
 		CBTreeNode *pBTNode = NULL;
 		CPineNode *pPineNode = NULL;
 		
-		pBTNode = remove_btree_node( fg_PineManager.pPineBTree, ( int32u_t )pPine );
+		log_print( "destory_pine_node: btree water level: %d, btree->%u", 
+						fg_PineManager.pPineBTree->iCurrentWaterLevel, fg_PineManager.pPineBTree );
+		pBTNode = remove_btree_node( fg_PineManager.pPineBTree, &(pPine->BTNode ) );
 		if ( pBTNode )
 		{
-			pPineNode = CONTAINER_OF_BTNODE(pBTNode, CPineNode);
+			memcpy( &pPineNode, (((int8u_t *)pPine) - 8), sizeof( pPineNode ) );
 			
-			mem_free( pPineNode->pm_Base );
-			pPineNode->pm_Base = NULL;
+			if ( pPineNode )
+			{
+				log_print( "%s %s-%d: destroy pine node...........\r\n", __FILE__, __FUNCTION__, __LINE__ );
 			
-			mem_free( pPineNode );
-			pPineNode = NULL;
+			
+				mem_free( pPineNode );
+				pPineNode = NULL;
 
-			iRetCode = 0;
+				iRetCode = 0;
+			}
+			else
+				log_print( "%s %s-%d: !if ( pPineNode ) failed ????????????????????\r\n", __FILE__, __FUNCTION__, __LINE__ );
 		}
+		else 
+			log_print( "%s %s-%d: !if ( pBTNode ) failed ????????????????????\r\n", __FILE__, __FUNCTION__, __LINE__ );
 	}
+	else 
+		log_print( "%s %s-%d: !if ( pPine ) failed ????????????????????\r\n", __FILE__, __FUNCTION__, __LINE__ );
 
 	return iRetCode;
 }
