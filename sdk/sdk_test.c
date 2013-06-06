@@ -248,6 +248,16 @@ typedef struct CPerson_t
 	int8_t pm_Sex[2];
 }CPerson;
 
+#define EXTENDS_PERSON \
+	CPerson PersonSuper;
+
+typedef struct CChinese_t
+{
+	EXTENDS_PERSON
+	
+	int8_t Nationality[32];
+}CChinese;
+
 void init_person( CPine *pPine )
 {
 	printf( "init_person:---------------->\r\n" );
@@ -262,27 +272,40 @@ void release_person( CPine *pPine )
 	printf( "release_person end<--------------------\r\n" );	
 }
 
-void init_person2( CPine *pPine )
+void init_chinese( CPine *pPine )
 {
-	printf( "init_person2:---------------->\r\n" );
+	CChinese *pMe = (CChinese *)pPine;
+	printf( "init_chinese:---------------->\r\n" );
 	
-	printf( "init_person2 end<---------------\r\n" );
+	if ( pMe )
+	{
+		memcpy( pMe->Nationality, "ch", 3 );
+	}
+	
+	printf( "init_chinese end<---------------\r\n" );
 }
 
-void release_person2( CPine *pPine )
+void release_chinese( CPine *pPine )
 {
-	printf( "release_person2:------------------->\r\n" );
+	printf( "release_chinese:------------------->\r\n" );
 
-	printf( "release_person2 end<--------------------\r\n" );	
+	printf( "release_chinese end<--------------------\r\n" );	
 }
 
+void show_chinese( CChinese *pChinese )
+{
+	if ( pChinese )
+	{
+		printf( "pChinese->Nationality: %s\r\n", pChinese->Nationality );	
+	}
+}
 
 ////add pine method fron base to child.
 //int32_t add_pine_method( CPineMethod *pHeadMethod, CPineMethod *pNewMethod );
 
 int main( int argc, char **argv )
 {
-	CPerson *pPerson = (CPerson *)create_pine( sizeof(*pPerson) );
+	CChinese *pPerson = (CPerson *)create_pine( sizeof(*pPerson) );
 
 	printf( "main:---------------------->\r\n" );
 	
@@ -302,14 +325,16 @@ int main( int argc, char **argv )
 		
 		//child method.
 		memset( &method2, 0x00, sizeof( method2 ) );
-		method2.init = init_person2;
-		method2.release = release_person2;
+		method2.init = init_chinese;
+		method2.release = release_chinese;
 		add_pine_method( &pMethod, &method2 );
 		
 		printf( "start to init pine......................\r\n" );
 		if ( pine_init( (CPine *)pPerson, pMethod ) >= 0 )
 		{
 			printf( "pine_init call ok...............\r\n" );
+			
+			show_chinese( pPerson );
 			
 			printf( "start to release person.............\r\n" );
 			pine_release( (CPine *)pPerson );
