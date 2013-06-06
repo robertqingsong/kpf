@@ -24,33 +24,31 @@ typedef struct CBTree_t
 	CMutex Locker;
 }CBTree;
 
+
 typedef struct CBTreeNode_t
 {
-	void *pBTNode;	
-
-	void *pData;
+	
 }CBTreeNode;
+
+#define CONTAINER_OF_BTNODE(addr, type) \
+	CONTAINER_OF( addr, BTNode, type )
 
 //compare type.
 typedef int32_t (*btree_comp_t)( const void *pValA, const void *pValB, void *pParam );
-
-//avl value type.
-typedef void (*btree_node_t)( void *pBTreeNode, void *pParam );
-
-//copy avl node.
-typedef void *(*btree_node_copy_t)( void *pBTreeNode, void *pParam );
 
 
 //create btree.
 CBTree *create_btree( btree_comp_t comp );
 //destory btree.
 int32_t destory_btree( CBTree *pBTree );
+
+
 //add node to btree.
 int32_t add_btree_node( CBTree *pBTree, CBTreeNode *pBTreeNode );
 //remove btree node.
-CBTreeNode *remove_btree_node( CBTree *pBTree, int32u_t iBTNodeId );
+CBTreeNode *remove_btree_node( CBTree *pBTree, int64u_t iBTNodeId );
 //search btree node.
-CBTreeNode *search_btree_node( CBTree *pBTree, int32u_t iBTNodeId );
+CBTreeNode *search_btree_node( CBTree *pBTree, int64u_t iBTNodeId );
 
 #if defined(__cplusplus)
 }

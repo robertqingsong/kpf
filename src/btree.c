@@ -45,33 +45,91 @@ int32_t destory_btree( CBTree *pBTree )
 
 	if ( pBTree )
 	{
-		
+		lock( &(pBTree->Locker) );	
+
+		mem_free( pBTree->pBTreeTbl );
+		pBTree->pBTreeTbl = NULL;
+
+		unlock( &(pBTree->Locker) );
+
+		mem_free( pBTree );
+		pBTree = NULL;
+
 	}
 
 	return iRetCode;
 }
+
 
 //add node to btree.
 int32_t add_btree_node( CBTree *pBTree, CBTreeNode *pBTreeNode )
 {
 	int32_t iRetCode = -1;
 
+	if ( pBTree && pBTreeNode )
+	{
+		void *pOpRet = NULL;
+
+		lock( &( pBTree->Locker ) );
+
+		pOpRet = avl_insert( pBTree->pBTreeTbl, (void *)pBTreeNode );
+	
+		if ( !pOpRet )
+		{
+			iRetCode = 0;			
+		}
+
+		unlock( &( pBTree->Locker ) );
+	}
 
 	return iRetCode;
 }
 
 //remove btree node.                    
-CBTreeNode *remove_btree_node( CBTree *pBTree, int32u_t iBTNodeId )
+CBTreeNode *remove_btree_node( CBTree *pBTree, int64u_t iBTNodeId )
 {
 	CBTreeNode *pRetCode = NULL;
+
+	if ( pBTree )
+	{
+
+		void *pOpRet = NULL;
+
+		lock( &( pBTree->Locker ) );
+
+		pOpRet = avl_delete( pBTree->pBTreeTbl, (const void *)iBTNodeId );
+		
+		if ( pOpRet )
+		{
+			pRetCode = (CBTreeNode *)pOpRet;
+		}
+
+		unlock( &( pBTree->Locker ) );
+	}
 
 	return pRetCode;
 }
 
 //search btree node.
-CBTreeNode *search_btree_node( CBTree *pBTree, int32u_t iBTNodeId )
+CBTreeNode *search_btree_node( CBTree *pBTree, int64u_t iBTNodeId )
 {
 	CBTreeNode *pRetCode = NULL;
 
+	if ( pBTree )
+	{
+		void *pOpRet = NULL;
+		
+		lock( &( pBTree->Locker ) );
+
+		pOpRet = avl_find( pBTree->pBTreeTbl, (const void *)iBTNodeId );
+
+		if ( pOpRet )
+			pRetCode = (CBTreeNode *)pOpRet;
+	
+	
+		unlock( &( pBTree->Locker ) );
+	}
+
 	return pRetCode;
 }
+
