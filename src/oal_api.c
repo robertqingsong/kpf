@@ -34,7 +34,6 @@ typedef struct CThreadManager_t
 {
 	int32_t iInitFlag;
 
-	CBTree *pThreadTree;
 
 	CMutex Locker;
 }CThreadManager;
@@ -110,10 +109,7 @@ int32u_t os_thread_create( os_thread_t thread, void *pParam,
 		
 			if ( pthread_create( (pthread_t *)&(pThread->iTid), NULL, os_common_thread, pThread ) >= 0 )
 			{
-				if ( add_btree_node( fg_ThreadManager.pThreadTree, &( pThread->BTNode ) ) >= 0 )
-				{
-					iRetCode = (int32u_t)&( pThread->BTNode );
-				}
+				iRetCode = (int32u_t)&( pThread->BTNode );
 			}
 	
 			if ( iRetCode <= 0 )
@@ -146,11 +142,7 @@ int32_t os_thread_wait( int32u_t iThreadId )
 		
 	if ( iThreadId > 0 )
 	{
-		CBTreeNode *pBTNode = NULL;
-		
-		lock( &( fg_ThreadManager.Locker ) );
-		pBTNode = remove_btree_node( fg_ThreadManager.pThreadTree, iThreadId );
-		unlock( &( fg_ThreadManager.Locker ) );
+		CBTreeNode *pBTNode = (CBTreeNode *)iThreadId;
 		
 		if ( pBTNode )
 		{
@@ -233,13 +225,10 @@ static int32_t init_thread_manager( void )
 		if ( init_mutex( &( fg_ThreadManager.Locker ) ) >= 0 )
 		{
 			lock( &( fg_ThreadManager.Locker ) );
-			fg_ThreadManager.pThreadTree = create_btree( thread_btree_comp );
-			if ( fg_ThreadManager.pThreadTree )
-			{
-				fg_ThreadManager.iInitFlag = 1;
+			fg_ThreadManager.iInitFlag = 1;
 
-				iRetCode = 0;
-			}
+			iRetCode = 0;
+			
 			unlock( &( fg_ThreadManager.Locker ) );
 		}
 	}
