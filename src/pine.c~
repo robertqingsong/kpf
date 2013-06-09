@@ -93,7 +93,7 @@ int32_t init_pine_system( void )
 		{
 			init_timer(  );
 			
-			init_block(  );
+			inti_block(  );
 			
 			iRetCode = 0;
 		}

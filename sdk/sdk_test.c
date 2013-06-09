@@ -420,6 +420,7 @@ int main( int argc, char ** argv )
 
 #endif
 
+#if 0
 #include "timer.h"
 #include "oal_api.h"
 
@@ -469,5 +470,44 @@ int main( int argc, char **argv )
 	return 0;	
 }
 
+#endif
+
+#include "timer.h"
+#include "oal_api.h"
+
+#include "log.h"
+
+#include "block.h"
+
+#include "pine.h"
+
+int main( int argc, char **argv )
+{
+	int32u_t iBlockId = 0;
+	
+	if ( init_pine_system(  ) < 0 )
+		return -1;	
+	
+		
+	enable_log( 1 );
+	set_log( LOG_TYPE_CONSOLE, NULL, 0 );
+
+	iBlockId = block_create( 1 );
+	if ( iBlockId > 0 )
+	{
+		block_wait( iBlockId );
+		
+		log_print( "thread continues.............." );
+		
+		block_destroy( iBlockId );	
+	}
+	
+	while ( 1 )
+		os_sleep( 100 );
+		
+	release_pine_system(  );
+
+	return 0;	
+}
 
 

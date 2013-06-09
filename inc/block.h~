@@ -33,7 +33,7 @@ int32_t block_destroy( int32u_t iBlockId );
 int32_t block_wait( int32u_t iBlockId );
 
 //release block.
-int32_t block_post( int32u_t iBlockId );
+int32_t block_post( int32u_t iBlockId )
 
 #if defined(__cplusplus)
 }
