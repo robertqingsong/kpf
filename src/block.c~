@@ -179,7 +179,7 @@ int32u_t block_create( int32_t iTimeInSeconds )
 			pNewBlock->iBlockTimeInSeconds = iTimeInSeconds;//write protect.s;
 			pNewBlock->iBlockFlag = 1;//is blocking.
 			
-			if ( insert_list_head_node( &( fg_BlockManager.pBlockLHead ), &( pNewBlock->LNode ) ) >= 0 )
+			if ( insert_list_head_rear( &( fg_BlockManager.pBlockLHead ), &( pNewBlock->LNode ) ) >= 0 )
 			{
 				iRetCode = (((int8u_t *)pNewBlock) + sizeof( *pNewBlock ));
 			}
