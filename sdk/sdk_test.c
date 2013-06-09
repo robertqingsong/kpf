@@ -502,8 +502,6 @@ int main( int argc, char **argv )
 		block_destroy( iBlockId );	
 	}
 	
-	while ( 1 )
-		os_sleep( 100 );
 		
 	release_pine_system(  );
 

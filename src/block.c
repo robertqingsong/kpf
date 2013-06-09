@@ -127,6 +127,9 @@ static void release_block_manager( void )
 	{
 		lock( &( fg_BlockManager.Locker ) );
 		
+		unregister_timer( fg_BlockManager.iBlockTimeOutTimerId );
+		fg_BlockManager.iBlockTimeOutTimerId = 0;
+		
 		reset_queue( &( fg_BlockManager.stRemoveQ ) );
 		fg_BlockManager.pBlockLHead = NULL;
 		

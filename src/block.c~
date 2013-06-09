@@ -13,7 +13,6 @@
 //block type define.
 typedef struct CBlock_t
 {
-	int32u_t iBlockId;//block id.
 	
 	int32_t iBlockTimeInSeconds;//block time in second.
 	int32_t iCurrentTimeInMileSeconds;

@@ -497,6 +497,8 @@ int main( int argc, char **argv )
 	{
 		block_wait( iBlockId );
 		
+		log_print( "thread continues.............." );
+		
 		block_destroy( iBlockId );	
 	}
 	
