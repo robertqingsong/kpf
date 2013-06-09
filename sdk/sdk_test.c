@@ -371,7 +371,7 @@ void *test( void *pParam )
 	while ( 1 )
 	{
 		iCounter++;
-	//	printf( "counter-->%d\r\n", iCounter );		
+		//log_print( "counter-->%d\r\n", iCounter );		
 		
 		os_sleep( 10 );
 		
@@ -388,15 +388,18 @@ void *test( void *pParam )
 
 int main( int argc, char ** argv )
 {
+	if ( init_pine_system(  ) < 0 )
+		return -1;	
+	
 	if ( init_mutex( &locker ) < 0 )
 		return -1;
 		
 	enable_log( 1 );
 	set_log( LOG_TYPE_CONSOLE, NULL, 0 );
 	
-	int32u_t tid1 = os_thread_create( test, NULL, OS_THREAD_PRIORITY_NORMAL );
-	int32u_t tid2 = os_thread_create( test, NULL, OS_THREAD_PRIORITY_NORMAL );
-	int32u_t tid3 = os_thread_create( test, NULL, OS_THREAD_PRIORITY_NORMAL );
+	int32u_t tid1 = os_thread_create( test, NULL, OS_THREAD_PRIORITY_NORMAL, 20 * 1024 );
+	int32u_t tid2 = os_thread_create( test, NULL, OS_THREAD_PRIORITY_NORMAL, 512 * 1024 );
+	int32u_t tid3 = os_thread_create( test, NULL, OS_THREAD_PRIORITY_NORMAL, 100 * 1024 );
 	
 	
 	
@@ -408,6 +411,8 @@ int main( int argc, char ** argv )
 	os_thread_wait( tid3 );
 	
 	log_print( "exit........" );
+	
+	release_pine_system(  );
 	
 	return 0;	
 }

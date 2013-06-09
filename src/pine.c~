@@ -101,11 +101,11 @@ int32_t init_pine_system( void )
 //release pine system.
 void release_pine_system( void )
 {
-	//log_print( "release_pine_system:------------------>" );
+	log_print( "release_pine_system:------------------>" );
 	
 	release(  );
 	
-	//log_print( "release_pine_system end<------------------" );
+	log_print( "release_pine_system end<------------------" );
 }
 
 int8u_t *create_pine( int32_t iSizeOfPine )

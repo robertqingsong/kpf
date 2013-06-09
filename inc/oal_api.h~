@@ -31,7 +31,7 @@ int32_t get_handle( void );
 
 //os thread api.
 int32u_t os_thread_create( os_thread_t thread, void *pParam, 
-				C_THREAD_PRIORITY eThreadPriority, int32_t iStackSize );
+				C_THREAD_PRIORITY eThreadPriority );
 
 //quit thread.
 int32_t os_thread_wait( int32u_t iThreadId );

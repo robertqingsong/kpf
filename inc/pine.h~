@@ -35,12 +35,6 @@ typedef struct CPineMethod_t
 	CListNode LNode;//ring list.
 }CPineMethod;
 
-//init pine system.
-int32_t init_pine_system( void );
-
-//release pine system.
-void release_pine_system( void );
-
 //create pine memory.
 int8u_t *create_pine( int32_t iSizeOfPine );
 

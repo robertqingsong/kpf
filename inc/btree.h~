@@ -46,8 +46,6 @@ int32_t destory_btree( CBTree *pBTree );
 
 //init btree.
 int32_t init_btree( CBTree *pBTree, btree_comp_t comp );
-//release btree.
-int32_t release_btree( CBTree *pBTree );
 
 //add node to btree.
 int32_t add_btree_node( CBTree *pBTree, CBTreeNode *pBTreeNode );
