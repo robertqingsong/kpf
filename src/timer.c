@@ -162,6 +162,8 @@ void release_timer( void )
 		os_thread_wait( fg_TimerManager.iTimerTid );		
 		fg_TimerManager.iTimerTid = 0;
 		
+		reset_queue( &( fg_TimerManager.stRemoveQ ) );
+		
 		fg_TimerManager.iInitFlag = 0;
 		
 		unlock( &( fg_TimerManager.Locker ) );
