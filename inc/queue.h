@@ -5,6 +5,8 @@
 
 #include "lock.h"
 
+#include "defines.h"
+
 #if defined(__cplusplus)
 extern "C"
 {
@@ -29,6 +31,9 @@ typedef struct CQueue_t
 
 	CMutex Locker;
 }CQueue;
+
+#define CONTAINER_OF_QUEUE( addr, type ) \
+				CONTAINER_OF( addr, QNode, type )
 
 //init queue.
 int32_t init_queue( CQueue *pQueue );

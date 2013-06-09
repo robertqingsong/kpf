@@ -354,6 +354,7 @@ int main( int argc, char **argv )
 
 #endif
 
+#if 0
 #include "oal_api.h"
 
 #include "log.h"
@@ -414,6 +415,57 @@ int main( int argc, char ** argv )
 	
 	release_pine_system(  );
 	
+	return 0;	
+}
+
+#endif
+
+#include "timer.h"
+#include "oal_api.h"
+
+#include "log.h"
+
+int count = 0;
+int32u_t timerId;
+
+int32_t timer_callback( int32u_t iTimerId, void *pUserData )
+{
+	printf( "timer callback:\r\n" );
+	
+	count++;
+	if ( count > 3 )
+		unregister_timer( timerId );
+	
+	return 0;
+}
+
+int main( int argc, char **argv )
+{
+	
+	
+	
+		if ( init_pine_system(  ) < 0 )
+		return -1;	
+	
+		
+	enable_log( 1 );
+	set_log( LOG_TYPE_CONSOLE, NULL, 0 );
+	
+	if ( init_timer(  ) < 0 )
+		return -1;
+	printf( "init timer ok.............\r\n" );
+	
+	timerId = register_timer( 1000, timer_callback, NULL );
+	printf( "timerId-->%u\r\n", timerId );
+
+	
+	while ( 1 )
+		os_sleep(100);
+		
+	release_timer(  );
+	
+		release_pine_system(  );
+
 	return 0;	
 }
 

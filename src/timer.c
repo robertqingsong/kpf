@@ -1,0 +1,302 @@
+#include "../inc/timer.h"
+
+#include "../inc/lock.h"
+
+#include "../inc/mem_api.h"
+
+#include "../inc/list.h"
+
+#include "../inc/oal_api.h"
+
+#include "../inc/queue.h"
+
+#include "../inc/log.h"
+
+typedef struct CTimer_t
+{
+	int32u_t iTimerId;	
+	
+	int32_t iTimerInMileSeconds;
+	
+	int32_t iCurrentTimeInMileSeconds;
+	
+	timer_callback_t callback;
+	
+	void *pUserData;
+	
+	CListNode LNode;
+}CTimer;
+
+typedef struct CRemoveTimer_t
+{
+	CTimer *pTimer;
+	
+	CQueueNode QNode;
+}CRemoveTimer;
+
+typedef struct CTimerManager_t
+{
+	int32_t iInitFlag;
+	
+	int32_t iIsRunning;
+	int32u_t iTimerTid;
+	
+	CListNode *pTimerLHead;//timer list head node.
+	
+	CQueue stRemoveQ;//remove timer q.
+	
+	CMutex Locker;
+}CTimerManager;
+
+//static variable defines.
+static CTimerManager fg_TimerManager = {
+	0, 
+	0, 
+};
+
+//timer static api.
+static int32_t is_timer_manager_ready( void );
+static int32_t init_timer_manager( void );
+static void *timer_task( void *pParam );
+
+//init timer.
+int32_t init_timer( void )
+{
+	int32_t iRetCode = -1;
+	
+	if ( is_timer_manager_ready() < 0 )
+	{
+		iRetCode = init_timer_manager(  );
+	}
+	else 
+	{
+		iRetCode = 0;
+	}
+	
+	return iRetCode;	
+}
+
+//register timer.
+int32u_t register_timer( int32_t iTimeInMileSeconds, timer_callback_t callback, void *pUserData )
+{
+	int32u_t iRetCode = 0;
+	
+	if ( iTimeInMileSeconds > 0 && callback )
+	{
+		CTimer *pNewTimer = NULL;
+	
+		lock( &( fg_TimerManager.Locker ) );	
+	
+		pNewTimer = mem_malloc( sizeof( *pNewTimer ) + sizeof( void * ) );
+		if ( pNewTimer )
+		{
+			memset( pNewTimer, 0x00, sizeof( *pNewTimer ) + sizeof( void * ) );
+			
+			pNewTimer->iCurrentTimeInMileSeconds = 0;
+			pNewTimer->iTimerInMileSeconds = iTimeInMileSeconds;
+			pNewTimer->callback = callback;
+			pNewTimer->pUserData = pUserData;
+			
+			if ( insert_list_head_rear( &( fg_TimerManager.pTimerLHead ), &( pNewTimer->LNode ) ) >= 0 )
+			{
+				iRetCode = (((int8u_t *)pNewTimer) + sizeof( *pNewTimer ));
+				
+				pNewTimer->iTimerId = iRetCode;
+			}
+			
+			if ( 0 == iRetCode )
+			{
+				mem_free( pNewTimer );
+				pNewTimer = NULL;
+			}
+		}
+		
+		unlock( &( fg_TimerManager.Locker ) );
+	}
+	
+	return iRetCode;
+}
+
+//unregister timer.
+int32_t unregister_timer( int32u_t iTimerId )
+{
+	int32_t iRetCode = -1;
+	
+	if ( iTimerId )
+	{
+		CTimer *pTimer = NULL;
+		CRemoveTimer *pRemoveTimer = NULL;
+		
+		pRemoveTimer = mem_malloc( sizeof( *pRemoveTimer ) );
+		if ( pRemoveTimer )
+		{
+			memset( pRemoveTimer, 0x00, sizeof( *pRemoveTimer ) );
+			
+			pTimer = ((int8u_t *)iTimerId) - sizeof( *pTimer );
+			
+			pRemoveTimer->pTimer = pTimer;
+			
+			if ( en_queue( &(fg_TimerManager.stRemoveQ), &( pRemoveTimer->QNode ) ) >= 0 )
+			{
+				iRetCode = 0;
+			}
+			else 
+			{
+				mem_free( pRemoveTimer );
+				pRemoveTimer = NULL;
+			}
+		}
+	}
+	
+	return iRetCode;
+}
+
+//destroy timer.
+void release_timer( void )
+{
+	if ( is_timer_manager_ready() >= 0 )
+	{
+		lock( &( fg_TimerManager.Locker ) );
+		
+		fg_TimerManager.iIsRunning = 0;
+		os_thread_wait( fg_TimerManager.iTimerTid );		
+		fg_TimerManager.iTimerTid = 0;
+		
+		fg_TimerManager.iInitFlag = 0;
+		
+		unlock( &( fg_TimerManager.Locker ) );
+	}
+}
+
+//timer static api.
+static int32_t is_timer_manager_ready( void )
+{
+	int32_t iRetCode = -1;
+	
+	if ( fg_TimerManager.iInitFlag )
+		iRetCode = 0;
+	
+	return iRetCode;
+}
+
+static int32_t init_timer_manager( void )
+{
+	int32_t iRetCode = -1;
+	
+	if ( !(fg_TimerManager.iInitFlag) )
+	{
+		memset( &(fg_TimerManager), 0x00, sizeof( fg_TimerManager ) );
+		if ( init_mutex( &( fg_TimerManager.Locker ) ) >= 0 )
+		{
+			lock( &( fg_TimerManager.Locker ) );
+			
+			if ( init_queue( &(fg_TimerManager.stRemoveQ) ) >= 0 )
+			{
+				if ( set_queue_water_level( &( fg_TimerManager.stRemoveQ ), 100 ) >= 0 )
+				{
+					fg_TimerManager.pTimerLHead = NULL;
+			
+					fg_TimerManager.iIsRunning = 1;
+					fg_TimerManager.iTimerTid = os_thread_create( timer_task, NULL, OS_THREAD_PRIORITY_NORMAL, 20 * 1024 );
+				
+					if ( fg_TimerManager.iTimerTid > 0 )
+					{
+						fg_TimerManager.iInitFlag = 1;
+			
+						iRetCode = 0;
+					}	
+				}	
+			}
+			
+			if ( iRetCode < 0 )
+			{
+				log_print( "init timer manager failed???????????????????????????\r\n" );
+						
+				reset_queue( &(fg_TimerManager.stRemoveQ) );
+						
+				fg_TimerManager.iIsRunning = 0;
+			}
+			
+			unlock( &( fg_TimerManager.Locker ) );
+		}
+	}
+	else 
+		iRetCode = 0;
+	
+	return iRetCode;
+}
+
+static void *timer_task( void *pParam )
+{
+	void *pRetCode = NULL;
+	CListNode *pTempLNode = NULL;
+	CTimer *pTimer = NULL;
+	CQueueNode *pTempQNode = NULL;
+	CRemoveTimer *pRemoveTimer = NULL;
+	int32u_t iTimerId = 0;
+	
+	while ( fg_TimerManager.iIsRunning )
+	{
+		lock( &( fg_TimerManager.Locker ) );
+		
+		//timer out processing.
+		pTempLNode = fg_TimerManager.pTimerLHead;
+		while ( pTempLNode )	
+		{
+			pTimer = CONTAINER_OF_LIST( pTempLNode, CTimer );
+			
+			pTempLNode = pTempLNode->Next;
+		
+			pTimer->iCurrentTimeInMileSeconds += 100;
+			
+			if ( pTimer->iCurrentTimeInMileSeconds >= pTimer->iTimerInMileSeconds )
+			{
+				if ( pTimer->callback )
+				{
+					if ( pTimer->callback( pTimer->iTimerId, pTimer->pUserData ) >= 0 )
+					{
+						pTimer->iCurrentTimeInMileSeconds = 0;
+					}
+					else 
+					{
+						iTimerId = (((int8u_t *)pTimer) + sizeof( *pTimer ));
+						if ( unregister_timer( iTimerId ) < 0 )
+							log_print( "%s %s:%d unregister timer failed??????????????", __FILE__, __FUNCTION__, __LINE__ );
+					}
+				}
+			}
+		}
+		
+		unlock( &( fg_TimerManager.Locker ) );
+		
+		//delete timer processing.
+		while ( ( pTempQNode = de_queue( &( fg_TimerManager.stRemoveQ ) ) ) )
+		{
+			pRemoveTimer = CONTAINER_OF_QUEUE( pTempQNode, CRemoveTimer );
+			
+			lock( &( fg_TimerManager.Locker ) );
+			
+			pTimer = pRemoveTimer->pTimer;
+			if ( pTimer )
+			{
+				//remove timer.
+				if ( remove_list_head_node( &( fg_TimerManager.pTimerLHead ), &( pTimer->LNode ) ) >= 0 )
+				{
+					mem_free( pTimer );
+					pTimer = NULL;
+				}	
+			}
+			
+			mem_free( pRemoveTimer );
+			pRemoveTimer = NULL;
+			
+			unlock( &( fg_TimerManager.Locker ) );
+		}
+		
+		os_sleep( 100 );
+	}
+
+	return pRetCode;
+}
+
+
