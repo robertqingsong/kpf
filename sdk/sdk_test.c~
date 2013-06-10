@@ -472,6 +472,8 @@ int main( int argc, char **argv )
 
 #endif
 
+#if 0
+
 #include "timer.h"
 #include "oal_api.h"
 
@@ -502,12 +504,28 @@ int main( int argc, char **argv )
 		block_destroy( iBlockId );	
 	}
 	
-	while ( 1 )
-		os_sleep( 100 );
 		
 	release_pine_system(  );
 
 	return 0;	
 }
+#endif
 
+#include "oal_api.h"
+#include "net_api.h"
+
+int main( int argc, char **argv )
+{
+	int32_t iSocketId = net_socket( SOCKET_TYPE_STREAM, 0 );
+	
+	if ( iSocketId >= 0 )
+	{
+			
+	}
+	
+	while ( 1 )
+		os_sleep( 100 );
+	
+	return 0;	
+}
 

@@ -16,6 +16,8 @@
 
 #include "../inc/block.h"
 
+#include "../inc/net_api.h"
+
 //smart type define.
 typedef struct CSmart_t
 {
@@ -95,6 +97,8 @@ int32_t init_pine_system( void )
 			
 			init_block(  );
 			
+			init_reactor(  );
+			
 			iRetCode = 0;
 		}
 	}
@@ -110,6 +114,8 @@ int32_t init_pine_system( void )
 void release_pine_system( void )
 {
 	//log_print( "release_pine_system:------------------>" );
+
+	release_reactor(  );
 
 	release_block(  );
 

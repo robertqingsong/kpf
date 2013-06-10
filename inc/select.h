@@ -8,13 +8,13 @@
 #ifndef __SELECT_H__
 #define __SELECT_H__
 
-#ifdef (__cplusplus)
+#if defined(__cplusplus)
 extern "C"
 {
 #endif
 
 
-#ifdef (__cplusplus)
+#if defined(__cplusplus)
 }
 #endif
 

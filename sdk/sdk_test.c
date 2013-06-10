@@ -472,6 +472,8 @@ int main( int argc, char **argv )
 
 #endif
 
+#if 0
+
 #include "timer.h"
 #include "oal_api.h"
 
@@ -507,5 +509,23 @@ int main( int argc, char **argv )
 
 	return 0;	
 }
+#endif
 
+#include "oal_api.h"
+#include "net_api.h"
+
+int main( int argc, char **argv )
+{
+	int32_t iSocketId = net_socket( SOCKET_TYPE_STREAM, 0 );
+	
+	if ( iSocketId >= 0 )
+	{
+		printf( "create socket ok.socket id-->%d.\r\n", iSocketId );
+	}
+	
+	while ( 1 )
+		os_sleep( 100 );
+	
+	return 0;	
+}
 
