@@ -514,13 +514,47 @@ int main( int argc, char **argv )
 #include "oal_api.h"
 #include "net_api.h"
 
+#include <stdio.h>
+
+int32_t reactor_callback( int32u_t iReactorId, int32_t iSocketId, void *pUserData )
+{
+	
+}
+
 int main( int argc, char **argv )
 {
-	int32_t iSocketId = net_socket( SOCKET_TYPE_STREAM, 0 );
+	int32u_t iSocketId = net_socket( SOCKET_TYPE_STREAM, 0 );
+	CNetAddr addr;
 	
-	if ( iSocketId >= 0 )
+	printf("init reactor:\r\n" );
+	init_reactor(  );
+	
+	if ( iSocketId > 0 )
 	{
-			
+		int32u_t iReactorId = 0;
+		const int8_t *pDomainName = "www.baidu.com";
+		
+		printf( "init reactor ok..........\r\n" );
+		
+		memcpy( addr.pIP, pDomainName, strlen(pDomainName) );
+		
+		printf( "start to connect ............\r\n" );
+		net_connect( iSocketId, &addr );
+		
+		printf( "connect edn...........\r\n" )
+		
+		printf( "start to create reactor..............\r\n" );
+		iReactorId = net_reactor(  );
+
+		printf( "create reactor end.............\r\n" );		
+		
+		register_reactor_callback( iReactorId, reactor_callback, NULL );
+		
+		add_reactor_socket( iReactorId, iSocketId, NULL );
+		
+		printf( "create socket ok.socket id-->%u.\r\n", iSocketId );
+		
+		
 	}
 	
 	while ( 1 )

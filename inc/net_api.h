@@ -11,6 +11,7 @@
 #include "config.h"
 #include "typedefs.h"
 
+
 #if defined(__cplusplus)
 extern "C"
 {
@@ -30,6 +31,15 @@ typedef enum
 	SOCKET_OPTION_REUSE_ADDRESS
 }C_SOCKET_OPTION;
 
+//network address define.
+typedef struct CNetAddr_t
+{
+	int8_t pIP[32];
+	int16u_t iPort;
+	
+	int16u_t iLocalPort;
+}CNetAddr;
+
 //socket param.
 typedef struct CSocketParam_t
 {
@@ -43,16 +53,34 @@ typedef struct CNetEngine_t
 {
 	int32_t iEngineId;//epoll id, or kqueue id.
 	
+	int32_t iIsRunning;
+	int32u_t iEngineTid;//engine thread id.
+	
 	engine_callback_t pEngineCallback;//point to engine callback.
 }CNetEngine;
 
 typedef int32_t (*reactor_callback_t)( int32u_t iReactorId, int32_t iSocketId, void *pUserData );
+
+//ip address to int.
+int64u_t net_ip2n( const int8_t *pIP );
+
+//get domain's ip address.
+int32_t net_get_domain_ip( const int8_t *pDomainName, int8_t *pIP, const int32_t iIPBufLen );
+
+//n to ip.
+int32_t net_n2ip( const int64u_t inIP, int8_t *pIP, const int32_t iIPBufLen );
 
 //create socket.
 int32u_t net_socket( const C_SOCKET_TYPE eSocketType, const int32_t iIsIPv6 );
 
 //close socket.
 void net_close_socket( const int32u_t iSocketId );
+
+//bind socket and address.
+int32_t net_bind( const int32u_t iSocketId, const CNetAddr *pNetAddr );
+
+//bind socket and address.
+int32_t net_connect( const int32u_t iSocketId, const CNetAddr *pNetAddr );
 
 //set socket property.
 int32_t net_set_socket( const int32u_t iSocketId, 

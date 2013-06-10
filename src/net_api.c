@@ -1,17 +1,29 @@
 #include "../inc/net_api.h"
 
-#if (__OS_LINUX__)
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h> 
-#include <fcntl.h>
-#endif
+
 
 #include "../inc/select.h"
 #include "../inc/epoll.h"
 #include "../inc/kqueue.h"
 #include "../inc/lock.h"
+
+#include "../inc/mem_api.h"
+
+#if (__OS_LINUX__)
+
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <sys/epoll.h>
+#include <fcntl.h>
+#include <errno.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <time.h>
+#include <netdb.h>
+
+#endif
 
 //net reactor.
 typedef struct CReactor_t
@@ -46,6 +58,52 @@ static CReactorManager fg_ReactorManager = {
 	0, 
 	
 };
+
+//ip address to int.
+int64u_t net_ip2n( const int8_t *pIP )
+{
+	int64u_t iRetCode = 0;
+	
+	if ( pIP )
+	{
+		iRetCode = inet_addr( pIP );
+	}
+		
+	return iRetCode;	
+}
+
+//n to ip.
+int32_t net_n2ip( const int64u_t inIP, int8_t *pIP, const int32_t iIPBufLen )
+{
+	int32_t iRetCode = -1;
+	
+	if ( pIP && iIPBufLen > 0 )
+	{
+		const int8_t *pTempIP = NULL;
+		struct in_addr addr;
+		int32_t iLen = 0;
+		
+		memset( &addr, 0x00, sizeof(addr) );
+		memcpy( &addr, &inIP, sizeof(addr) );
+		pTempIP = inet_ntoa( addr );
+		
+		if ( pTempIP )
+		{
+			iLen = strlen( pTempIP );
+			if ( iLen < iIPBufLen )
+			{
+				memcpy( pIP, pTempIP, iLen + 1 );
+				
+				printf( "inIP-->%u.\r\n", inIP );
+				printf( "pIP-->%s.\r\n", pIP );
+			
+				iRetCode = 0;
+			}
+		}
+	}
+	
+	return iRetCode;	
+}
 
 //create socket.
 int32u_t net_socket( const C_SOCKET_TYPE eSocketType, const int32_t iIsIPv6 )
@@ -140,6 +198,131 @@ int32_t net_set_socket( const int32u_t iSocketId,
 	}break ;	
 	}
 		
+	return iRetCode;
+}
+
+//get domain's ip address.
+int32_t net_get_domain_ip( const int8_t *pDomainName, int8_t *pIP, const int32_t iIPBufLen )
+{
+	int32_t iRetCode = -1;
+
+	if ( pDomainName && pIP && iIPBufLen > 0 )
+	{
+		struct hostent *pHost = NULL;
+		
+		pHost = gethostbyname( pDomainName );
+		if ( pHost )
+		{
+			struct sockaddr_in addr;
+			struct in_addr **ppAddrList = NULL;
+			int8_t pTempIP[32] = { 0x00, };
+			
+			printf( "pDomainName-->%s.\r\n", pDomainName );
+			
+			memset( &addr, 0x00, sizeof(addr) );
+			
+			printf( "start to get domain ip................\r\n" );
+			ppAddrList = (struct in_addr **)pHost->h_addr_list;
+			addr.sin_addr = *ppAddrList[0];
+			
+			printf( "get domain ip end..................\r\n" );
+		
+			iRetCode = net_n2ip( addr.sin_addr.s_addr, pTempIP, sizeof(pTempIP) );
+		}
+	}
+	
+	return iRetCode;	
+}
+
+//bind socket and address.
+int32_t net_bind( const int32u_t iSocketId, const CNetAddr *pNetAddr )
+{
+	int32_t iRetCode = -1;
+	int32_t iOkFlag = 0;
+	
+#if (__OS_LINUX__)
+	
+	if ( iSocketId && pNetAddr )
+	{
+		CSocket *pSocket = NULL;
+		struct sockaddr_in addr;
+		
+		pSocket = (CSocket *)iSocketId;
+		
+      //     configure ip & port for listen
+      memset( &addr, 0x00, sizeof( addr ) );
+      addr.sin_family = PF_INET;
+      addr.sin_port = htons( pNetAddr->iPort );
+      if ( pNetAddr->pIP[0] >= '0' && pNetAddr->pIP[0] <= '9' )
+      {
+      	addr.sin_addr.s_addr = net_ip2n( pNetAddr->pIP );
+      	iOkFlag = 1;
+      }
+      else 
+      {
+      	int8_t pIP[32] = { 0x00, };
+      	
+      	if ( net_get_domain_ip( pNetAddr->pIP, pIP, sizeof(pIP) ) >= 0 )
+      	{
+      		addr.sin_addr.s_addr = net_ip2n( pNetAddr->pIP );
+      		iOkFlag = 1;
+      	}
+      }
+
+      //     size of address
+      
+      if ( iOkFlag && (bind( pSocket->iSocketId, (struct sockaddr *)&addr, sizeof(addr) ) >= 0) )
+      	iRetCode = 0;
+	}
+	
+#endif
+
+	return iRetCode;
+}
+
+//bind socket and address.
+int32_t net_connect( const int32u_t iSocketId, const CNetAddr *pNetAddr )
+{
+	int32_t iRetCode = -1;
+	int32_t iOkFlag = 0;
+	
+#if (__OS_LINUX__)
+	
+	if ( iSocketId && pNetAddr )
+	{
+		CSocket *pSocket = NULL;
+		struct sockaddr_in addr;
+		
+		pSocket = (CSocket *)iSocketId;
+		
+      //     configure ip & port for listen
+      memset( &addr, 0x00, sizeof( addr ) );
+      addr.sin_family = PF_INET;
+      addr.sin_port = htons( pNetAddr->iPort );
+      if ( pNetAddr->pIP[0] >= '0' && pNetAddr->pIP[0] <= '9' )
+      {
+      	addr.sin_addr.s_addr = net_ip2n( pNetAddr->pIP );
+      	iOkFlag = 1;
+      }
+      else 
+      {
+      	int8_t pIP[32] = { 0x00, };
+      	
+      	if ( net_get_domain_ip( pNetAddr->pIP, pIP, sizeof(pIP) ) >= 0 )
+      	{
+      		addr.sin_addr.s_addr = net_ip2n( pNetAddr->pIP );
+      		iOkFlag = 1;
+      	}
+      }
+
+      //     size of address
+      
+      if ( iOkFlag && (connect( pSocket->iSocketId, (struct sockaddr *)&addr, sizeof(addr) ) >= 0) )
+      	iRetCode = 0;
+	}
+	
+#endif
+
 	return iRetCode;
 }
 
