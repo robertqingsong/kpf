@@ -55,6 +55,7 @@ static void *engin_proc_task( void *pParam )
 				
 				if ( pEngine->pEngineCallback )
 				{
+					log_print( "socket %d is active..............\r\n", iSocketId );
 					if ( pEngine->pEngineCallback( iSocketId, pUserData ) < 0 )
 					{
 						log_print( "engine callback returns < 0 failed?????????????????????" );	
@@ -87,7 +88,7 @@ int32u_t create_engine( void )
 		{
 			//create epoll task.
 			pNewEngine->iIsRunning = 1;
-			pNewEngine->iEngineTid = os_thread_create( engin_proc_task, pNewEngine, OS_THREAD_PRIORITY_NORMAL, 1024 * 10 );
+			pNewEngine->iEngineTid = os_thread_create( engin_proc_task, pNewEngine, OS_THREAD_PRIORITY_NORMAL, 1024 * 20 );
 			if ( pNewEngine->iEngineTid > 0 )
 			{
 				iRetCode = (((int8u_t *)pNewEngine) + sizeof( *pNewEngine ));

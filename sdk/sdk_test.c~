@@ -514,11 +514,19 @@ int main( int argc, char **argv )
 #include "oal_api.h"
 #include "net_api.h"
 
+#include "log.h"
+
 #include <stdio.h>
 
 int32_t reactor_callback( int32u_t iReactorId, int32_t iSocketId, void *pUserData )
 {
+	int32_t iRetCode = -1;
+
+	printf( "reactor_callback:##################################>\r\n" );
 	
+	log_print( "pUserData->%d.\r\n", (int)pUserData );
+	
+	return iRetCode;
 }
 
 int main( int argc, char **argv )
@@ -526,39 +534,64 @@ int main( int argc, char **argv )
 	int32u_t iSocketId = net_socket( SOCKET_TYPE_STREAM, 0 );
 	CNetAddr addr;
 	
-	printf("init reactor:\r\n" );
+	if ( init_pine_system(  ) < 0 )
+		return -1;	
+		
+	enable_log( 1 );
+	set_log( LOG_TYPE_CONSOLE, NULL, 0 );
+	
 	init_reactor(  );
 	
 	if ( iSocketId > 0 )
 	{
 		int32u_t iReactorId = 0;
 		const int8_t *pDomainName = "www.baidu.com";
+		const int8_t *pData = NULL;
+		int32_t iOpRet = -1;
 		
-		printf( "init reactor ok..........\r\n" );
 		
 		memcpy( addr.pIP, pDomainName, strlen(pDomainName) );
+		addr.iPort = 80;
 		
-		printf( "start to connect ............\r\n" );
-		net_connect( iSocketId, &addr );
-		
-		printf( "connect edn...........\r\n" )
-		
-		printf( "start to create reactor..............\r\n" );
-		iReactorId = net_reactor(  );
 
-		printf( "create reactor end.............\r\n" );		
+		if ( net_connect( iSocketId, &addr ) >= 0 )
+			printf( "connect to server ok..............\r\n" );
+		else 
+			printf( "connect to server failed?????????????????????????\r\n" );
+			
+		if ( net_set_socket( iSocketId, SOCKET_OPTION_NONE_BLOCK, NULL, 0 ) >= 0 )
+			log_print( "set socket none block ok................" );
+		else
+			log_print( "set socket none block failed???????????????????" );
 		
-		register_reactor_callback( iReactorId, reactor_callback, NULL );
+		iReactorId = net_reactor(  );
+		if ( iReactorId )
+			log_print( "create reactor ok................" );
+		else 
+		{
+			log_print( "create reactor failed????????????????" );
+			
+			return -1;	
+		}
 		
+		register_reactor_callback( iReactorId, reactor_callback, 199 );
+
 		add_reactor_socket( iReactorId, iSocketId, NULL );
 		
-		printf( "create socket ok.socket id-->%u.\r\n", iSocketId );
-		
-		
+		pData = "teststringdsaldjslf\r\n\r\n";
+		iOpRet = net_send( iSocketId, pData, strlen(pData) );
+		if ( iOpRet >= 0 )
+			printf( "send data ok.%d bytes................\r\n", iOpRet );
+		else 
+			printf( "send data failed???????????????????????\r\n" );
+
+		remove_reactor_socket( iReactorId, iSocketId );
 	}
 	
 	while ( 1 )
 		os_sleep( 100 );
+		
+	release_pine_system(  );
 	
 	return 0;	
 }

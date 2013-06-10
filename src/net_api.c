@@ -9,6 +9,8 @@
 
 #include "../inc/mem_api.h"
 
+#include "../inc/log.h"
+
 #if (__OS_LINUX__)
 
 #include <sys/types.h>
@@ -215,7 +217,6 @@ int32_t net_get_domain_ip( const int8_t *pDomainName, int8_t *pIP, const int32_t
 		{
 			struct sockaddr_in addr;
 			struct in_addr **ppAddrList = NULL;
-			int8_t pTempIP[32] = { 0x00, };
 			
 			printf( "pDomainName-->%s.\r\n", pDomainName );
 			
@@ -227,7 +228,7 @@ int32_t net_get_domain_ip( const int8_t *pDomainName, int8_t *pIP, const int32_t
 			
 			printf( "get domain ip end..................\r\n" );
 		
-			iRetCode = net_n2ip( addr.sin_addr.s_addr, pTempIP, sizeof(pTempIP) );
+			iRetCode = net_n2ip( addr.sin_addr.s_addr, pIP, iIPBufLen );
 		}
 	}
 	
@@ -310,7 +311,23 @@ int32_t net_connect( const int32u_t iSocketId, const CNetAddr *pNetAddr )
       	
       	if ( net_get_domain_ip( pNetAddr->pIP, pIP, sizeof(pIP) ) >= 0 )
       	{
-      		addr.sin_addr.s_addr = net_ip2n( pNetAddr->pIP );
+      		addr.sin_addr.s_addr = net_ip2n( pIP );
+      		
+#if (LOG_SUPPORT)
+{
+				int8_t logBuf[128] = { 0x00, };
+				
+				printf( "pIP->%s.\r\n", pIP );
+				
+      		printf( "addr.sin_addr.s_addr-->%u\r\n", addr.sin_addr.s_addr );
+
+				net_n2ip( addr.sin_addr.s_addr, logBuf, sizeof(logBuf) );
+	
+				printf( "ip-->%s.\r\n", logBuf );
+		
+}
+#endif      		
+      		
       		iOkFlag = 1;
       	}
       }
@@ -319,11 +336,133 @@ int32_t net_connect( const int32u_t iSocketId, const CNetAddr *pNetAddr )
       
       if ( iOkFlag && (connect( pSocket->iSocketId, (struct sockaddr *)&addr, sizeof(addr) ) >= 0) )
       	iRetCode = 0;
+      else 
+      	perror( "error info:" );
 	}
 	
 #endif
 
 	return iRetCode;
+}
+
+//send tcp data.
+int32_t net_send( int32u_t iSocketId, const int8u_t *pData, const int32_t iDataLen )
+{
+	int32_t iRetCode = -1;
+	
+	if ( iSocketId && pData && iDataLen > 0 )
+	{
+#if (__OS_LINUX__)
+		CSocket *pSocket = NULL;
+		
+		pSocket = (CSocket *)iSocketId;
+		
+		iRetCode = send( pSocket->iSocketId, pData, iDataLen, 0 );
+		
+		if ( 0 == iRetCode )
+		{
+			iRetCode = SOCKET_ERROR;	
+		}
+		else if ( iRetCode < 0 )
+		{
+			if ( EAGAIN != errno )
+			{
+				iRetCode = SOCKET_ERROR;	
+			}
+		}
+
+#endif	
+	}
+	
+	return iRetCode;	
+}
+
+//receive tcp data.
+int32_t net_recv( int32u_t iSocketId, int8u_t *pRecvDataBuf, const int32_t iRecvBufLen )
+{
+	int32_t iRetCode = -1;
+	
+	if ( iSocketId && pRecvDataBuf && iRecvBufLen > 0 )
+	{
+#if (__OS_LINUX__)
+		CSocket *pSocket = NULL;
+		
+		pSocket = (CSocket *)iSocketId;
+		
+		iRetCode = recv( pSocket->iSocketId, pRecvDataBuf, iRecvBufLen, 0 );
+		
+		if ( 0 == iRetCode )
+		{
+			iRetCode = SOCKET_ERROR;	
+		}
+		else if ( iRetCode < 0 )
+		{
+			if ( EAGAIN != errno )
+			{
+				iRetCode = SOCKET_ERROR;	
+			}
+		}
+
+#endif	
+	}
+	
+	return iRetCode;	
+}
+
+//send udp data.
+int32_t net_sendto( int32u_t iSocketId, const int8u_t *pData, const int32_t iDataLen )
+{
+	int32_t iRetCode = -1;
+	
+	if ( iSocketId && pData && iDataLen > 0 )
+	{
+#if (__OS_LINUX__)
+		CSocket *pSocket = NULL;
+		
+		pSocket = (CSocket *)iSocketId;
+		
+		iRetCode = sendto( pSocket->iSocketId, pData, iDataLen, 0, NULL, 0 );
+		
+		if ( iRetCode < 0 )
+		{
+			if ( EAGAIN != errno )
+			{
+				iRetCode = SOCKET_ERROR;	
+			}
+		}
+
+#endif	
+	}
+	
+	return iRetCode;	
+}
+
+//receive upp data.
+int32_t net_recvfrom( int32u_t iSocketId, int8u_t *pRecvDataBuf, const int32_t iRecvBufLen )
+{
+	int32_t iRetCode = -1;
+	
+	if ( iSocketId && pRecvDataBuf && iRecvBufLen > 0 )
+	{
+#if (__OS_LINUX__)
+		CSocket *pSocket = NULL;
+		
+		pSocket = (CSocket *)iSocketId;
+		
+		iRetCode = recvfrom( pSocket->iSocketId, pRecvDataBuf, iRecvBufLen, 0, NULL, 0 );
+		
+		if ( iRetCode < 0 )
+		{
+			if ( EAGAIN != errno )
+			{
+				iRetCode = SOCKET_ERROR;	
+			}
+		}
+
+#endif	
+	}
+	
+	return iRetCode;	
 }
 
 static int32_t is_reactor_manager_ready( void )

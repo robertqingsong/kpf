@@ -31,6 +31,9 @@ typedef enum
 	SOCKET_OPTION_REUSE_ADDRESS
 }C_SOCKET_OPTION;
 
+#define SOCKET_ERROR  (-1)
+#define SOCKET_ERROR_AGAIN  (-2)
+
 //network address define.
 typedef struct CNetAddr_t
 {
@@ -85,6 +88,18 @@ int32_t net_connect( const int32u_t iSocketId, const CNetAddr *pNetAddr );
 //set socket property.
 int32_t net_set_socket( const int32u_t iSocketId, 
 								const C_SOCKET_OPTION eOption, const CSocketParam *pSocketParam, const int32_t iParamSize );
+								
+//send tcp data.
+int32_t net_send( int32u_t iSocketId, const int8u_t *pData, const int32_t iDataLen );
+
+//receive tcp data.
+int32_t net_recv( int32u_t iSocketId, int8u_t *pRecvDataBuf, const int32_t iRecvBufLen );
+
+//send udp data.
+int32_t net_sendto( int32u_t iSocketId, const int8u_t *pData, const int32_t iDataLen );
+
+//receive upp data.
+int32_t net_recvfrom( int32u_t iSocketId, int8u_t *pRecvDataBuf, const int32_t iRecvBufLen );
 							
 //init reactor.
 int32_t init_reactor( void );

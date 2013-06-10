@@ -10,6 +10,8 @@
 
 #include "typedefs.h"
 
+#define LOG_SUPPORT  (1)
+
 #if defined(__cplusplus)
 extern "C"
 {
