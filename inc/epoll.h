@@ -22,7 +22,10 @@ extern "C"
 #if (__OS_LINUX__)
 
 //create engine.
-int32u_t create_engine( reactor_callback_t callback );
+int32u_t create_engine( void );
+
+//register reactor callback.
+int32_t register_engine_callback( int32u_t iEngineId, engine_callback_t callback );
 
 //destroy engine socket.
 void destroy_engine( int32u_t iEngineId );

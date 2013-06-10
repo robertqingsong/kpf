@@ -16,10 +16,24 @@
 //net reactor.
 typedef struct CReactor_t
 {
+	int32u_t iReactorId;	
+	
 	int32u_t iEngineId;//net engine which is used to handle all sockets event in this reactor.
 	
+	reactor_callback_t fReactorCallback;
 	
+	void *pUserData;
 }CReactor;
+
+//socket define.
+typedef struct CSocket_t
+{
+	int32_t iSocketId;
+	
+	CReactor *pOwnerReactor;
+	
+	void *pUserData;
+}CSocket;
 
 typedef struct CReactorManager_t
 {
@@ -34,54 +48,87 @@ static CReactorManager fg_ReactorManager = {
 };
 
 //create socket.
-int32_t net_socket( const C_SOCKET_TYPE eSocketType, const int32_t iIsIPv6 )
+int32u_t net_socket( const C_SOCKET_TYPE eSocketType, const int32_t iIsIPv6 )
 {
-	int32_t iRetCode = -1;
+	int32u_t iRetCode = 0;
+	int32_t iSocketId = -1;
 	
 #if (__OS_LINUX__)
 	if ( iIsIPv6 )
-		iRetCode = socket( AF_INET6, SOCK_STREAM, 0 );
+		iSocketId = socket( AF_INET6, SOCK_STREAM, 0 );
 	else 
-		iRetCode = socket( AF_INET, SOCK_STREAM, 0 );
+		iSocketId = socket( AF_INET, SOCK_STREAM, 0 );
+	if ( iSocketId >= 0 )
+	{
+		CSocket *pNewSocket = NULL;
+		
+		pNewSocket = mem_malloc( sizeof( *pNewSocket ) );
+		if ( pNewSocket )
+		{
+			memset( pNewSocket, 0x00, sizeof( *pNewSocket ) );
+			
+			pNewSocket->iSocketId = iSocketId;
+			
+			iRetCode = pNewSocket;
+		}
+		
+		if ( 0 == iRetCode)
+		{
+			close( iSocketId );
+			iSocketId = -1;
+		}
+	}
 #endif
 	
 	return iRetCode;	
 }
 
 //close socket.
-int32_t net_close_socket( const int32_t iSocketId )
-{
-	int32_t iRetCode = -1;
-	
+void net_close_socket( const int32u_t iSocketId )
+{	
 #if (__OS_LINUX__)
-	if ( iSocketId >= 0 )
-		iRetCode = close( iSocketId );
-#endif
 	
-	return iRetCode;	
+	if ( iSocketId )
+	{
+		CSocket *pSocket = NULL;
+		
+		pSocket = (CSocket *)iSocketId;
+		
+		if ( pSocket->iSocketId >= 0 )
+		{
+			close( pSocket->iSocketId );
+			pSocket->iSocketId = -1;
+		}
+		
+		mem_free( pSocket );
+		pSocket = NULL;
+	}
+#endif
 }
 
 //set socket property.
-int32_t net_set_socket( const int32_t iSocketId, 
+int32_t net_set_socket( const int32u_t iSocketId, 
 								const C_SOCKET_OPTION eOption, const CSocketParam *pSocketParam, const int32_t iParamSize )
 {
 	int32_t iRetCode = -1;
+	CSocket *pSocket = NULL;
 	
 	if ( iSocketId < 0 )
 		return iRetCode;
 	
+	pSocket = (CSocket *)iSocketId;
 	switch ( eOption )
 	{
 	case SOCKET_OPTION_NONE_BLOCK:
 	{
 #if (__OS_LINUX__)
 
-		int32_t iSocketFlags = fcntl( iSocketId, F_GETFL, 0 );
+		int32_t iSocketFlags = fcntl( pSocket->iSocketId, F_GETFL, 0 );
    	if ( iSocketFlags >= 0 )
    	{
    		iSocketFlags = iSocketFlags | O_NONBLOCK;
    		
-   		if ( fcntl( iSocketId, F_SETFL, iSocketFlags ) >= 0 )
+   		if ( fcntl( pSocket->iSocketId, F_SETFL, iSocketFlags ) >= 0 )
    			iRetCode = 0;
    	}
 
@@ -157,9 +204,29 @@ void release_reactor( void )
 	release_reactor_manager(  );
 }
 
-static int32_t common_reactor_callback( int32_t iSocketId, void *pUserData )
+static int32_t common_engine_callback( int32_t iSocketId, void *pUserData )
 {
 	int32_t iRetCode = -1;
+	CSocket *pSocket = NULL;
+	CReactor *pOwnerReactor = NULL;
+	
+	if ( !pUserData )
+		return iRetCode;
+	
+	lock( &( fg_ReactorManager.Locker ) );
+	
+	pSocket = (CSocket *)pUserData;
+	pOwnerReactor = pSocket->pOwnerReactor;
+	if ( pOwnerReactor )
+	{
+		if ( pOwnerReactor->fReactorCallback )
+		{
+			if ( pOwnerReactor->fReactorCallback( pOwnerReactor->iReactorId, iSocketId, pOwnerReactor->pUserData ) >= 0 )
+				iRetCode = 0;	
+		}
+	}
+	
+	unlock( &( fg_ReactorManager.Locker ) );
 	
 	return iRetCode;
 }
@@ -177,14 +244,25 @@ int32u_t net_reactor( void )
 	{
 		memset( pNewReactor, 0x00, sizeof( *pNewReactor ) + sizeof( void * ) );
 		
-		pNewReactor->iEngineId = create_engine( common_reactor_callback );
+		pNewReactor->iEngineId = create_engine(  );
 		if ( pNewReactor->iEngineId > 0 )
 		{
-			iRetCode = (((int8u_t *)pNewReactor) + sizeof( *pNewReactor ));
+			if ( register_engine_callback( pNewReactor->iEngineId, common_engine_callback ) >= 0 )
+			{
+				iRetCode = (((int8u_t *)pNewReactor) + sizeof( *pNewReactor ));
+				
+				pNewReactor->iReactorId = iRetCode;
+			}
 		}
 		
 		if ( 0 == iRetCode )
 		{
+			if ( pNewReactor->iEngineId )
+			{
+				destroy_engine( pNewReactor->iEngineId );
+				pNewReactor->iEngineId = NULL;
+			}
+			
 			mem_free( pNewReactor );
 			pNewReactor = NULL;
 		}
@@ -193,6 +271,30 @@ int32u_t net_reactor( void )
 	unlock( &( fg_ReactorManager.Locker ) );
 	
 	return iRetCode;
+}
+
+//register reactor data callback.
+int32_t register_reactor_callback( int32u_t iReactorId, reactor_callback_t callback, void *pUserData )
+{
+	int32_t iRetCode = -1;
+	
+	if ( iReactorId > 0 && callback )
+	{
+		CReactor *pReactor = NULL;
+		
+		lock( &( fg_ReactorManager.Locker ) );
+		
+		pReactor = (CReactor *)(iReactorId - sizeof( *pReactor ));
+		
+		pReactor->fReactorCallback = callback;
+		pReactor->pUserData = pUserData;
+		
+		iRetCode = 0;
+		
+		unlock( &( fg_ReactorManager.Locker ) );
+	}
+	
+	return iRetCode;	
 }
 
 //destroy reactor.
@@ -218,17 +320,28 @@ void net_close_reactor( int32u_t iReactorId )
 }
 
 //add reactor socket.
-int32_t add_reactor_socket( int32u_t iReactorId, int32_t iSocketId, void *pUserData )
+int32_t add_reactor_socket( int32u_t iReactorId, int32u_t iSocketId, void *pUserData )
 {
 	int32_t iRetCode = -1;
 	
-	if ( iReactorId > 0 && iSocketId >= 0 )
+	if ( iReactorId && iSocketId )
 	{
 		CReactor *pReactor = NULL;
+		CSocket *pSocket = NULL;
 		
 		lock( &( fg_ReactorManager.Locker ) );
 		
 		pReactor = (CReactor *)(iReactorId - sizeof( *pReactor ));
+		
+		pSocket = (CSocket *)iSocketId;
+		if ( pSocket )
+		{	
+			pSocket->pUserData = pUserData;
+			pSocket->pOwnerReactor = pReactor;
+			
+			if ( add_engine_socket( pReactor->iEngineId, pSocket->iSocketId, pSocket ) >= 0 )
+				iRetCode = 0;
+		}
 		
 		unlock( &( fg_ReactorManager.Locker ) );
 	}
@@ -237,23 +350,31 @@ int32_t add_reactor_socket( int32u_t iReactorId, int32_t iSocketId, void *pUserD
 }
 
 //remove reactor socket.
-int32_t remove_reactor_socket( int32u_t iReactorId, int32_t iSocketId )
+int32_t remove_reactor_socket( int32u_t iReactorId, int32u_t iSocketId )
 {
 	int32_t iRetCode = -1;
 	
-	if ( iReactorId > 0 && iSocketId >= 0 )
+	if ( iReactorId && iSocketId )
 	{
 		CReactor *pReactor = NULL;
+		CSocket *pSocket = NULL;
 		
 		lock( &( fg_ReactorManager.Locker ) );
 		
 		pReactor = (CReactor *)(iReactorId - sizeof( *pReactor ));
+		pSocket = (CSocket *)iSocketId;
+		
+		if ( remove_engine_socket( pReactor->iEngineId, pSocket->iSocketId ) >= 0 )
+		{
+			net_close_socket( iSocketId );
+			iSocketId = 0;
+			
+			iRetCode = 0;
+		}
 		
 		unlock( &( fg_ReactorManager.Locker ) );
 	}
 	
 	return iRetCode;	
 }
-
-
 
