@@ -55,10 +55,10 @@ static void *engin_proc_task( void *pParam )
 				
 				if ( pEngine->pEngineCallback )
 				{
-					log_print( "socket %d is active..............\r\n", iSocketId );
+					//log_print( "socket %d is active..............\r\n", iSocketId );
 					if ( pEngine->pEngineCallback( iSocketId, pUserData ) < 0 )
 					{
-						log_print( "engine callback returns < 0 failed?????????????????????" );	
+						//log_print( "engine callback returns < 0 failed?????????????????????" );	
 					}
 				}
 			}

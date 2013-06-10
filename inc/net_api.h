@@ -62,7 +62,10 @@ typedef struct CNetEngine_t
 	engine_callback_t pEngineCallback;//point to engine callback.
 }CNetEngine;
 
-typedef int32_t (*reactor_callback_t)( int32u_t iReactorId, int32_t iSocketId, void *pUserData );
+typedef int32_t (*reactor_callback_t)( int32u_t iReactorId, int32u_t iSocketId, void *pUserData );
+
+//get local ip.
+int32_t net_get_local_ip( int8_t *pIPBuf, const int32_t iIPBufLen );
 
 //ip address to int.
 int64u_t net_ip2n( const int8_t *pIP );
@@ -81,6 +84,12 @@ void net_close_socket( const int32u_t iSocketId );
 
 //bind socket and address.
 int32_t net_bind( const int32u_t iSocketId, const CNetAddr *pNetAddr );
+
+//listen socket.
+int32_t net_listen( const int32u_t iSocketId, const int32_t iListenCount );
+
+//accept socket.
+int32u_t net_accept( const int32u_t iSocketId, CNetAddr *pClientAddr );
 
 //bind socket and address.
 int32_t net_connect( const int32u_t iSocketId, const CNetAddr *pNetAddr );
@@ -121,6 +130,12 @@ int32_t add_reactor_socket( int32u_t iReactorId, int32u_t iSocketId, void *pUser
 
 //remove reactor socket.
 int32_t remove_reactor_socket( int32u_t iReactorId, int32u_t iSocketId );
+
+//network to host.
+int16u_t net_n2hs( int16u_t iInData );
+
+//host to network.
+int16u_t net_h2ns( int16u_t iInData );
 
 #if defined(__cplusplus)
 }

@@ -10,6 +10,8 @@
 
 #include "config.h"
 
+#define IMPLEMENT_MEM_API_SUPPORT  (1)
+
 #if defined(__cplusplus)
 extern "C"
 {
@@ -22,8 +24,21 @@ extern "C"
 #define mem_malloc kmalloc
 #define mem_free kfree
 #else
+
+#if (IMPLEMENT_MEM_API_SUPPORT)
+
+//malloc memory.
+void *mem_malloc( int32_t iMemSize );
+
+//free memory.
+int32_t mem_free( void *pMem );
+
+#else
+
 #define mem_malloc  malloc
 #define mem_free free
+#endif
+
 #endif
 
 #endif
