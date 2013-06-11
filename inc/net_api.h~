@@ -126,7 +126,7 @@ int32_t net_send( const CSocket *pSocketId, const int8u_t *pData, const int32_t 
 int32_t net_recv( const CSocket *pSocketId, int8u_t *pRecvDataBuf, const int32_t iRecvBufLen );
 
 //send udp data.
-int32_t net_sendto( const CSocket *pSocketId, const int8u_t *pData, const int32_t iDataLen, CNetAddr *pPeerAddr );
+int32_t net_sendto( const CSocket *pSocketId, const int8u_t *pData, const int32_t iDataLen );
 
 //receive upp data.
 int32_t net_recvfrom( const CSocket *pSocketId, int8u_t *pRecvDataBuf, const int32_t iRecvBufLen, CNetAddr *pPeerAddr );

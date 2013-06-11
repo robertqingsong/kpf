@@ -80,7 +80,7 @@ int32_t net_get_local_ip( int8_t *pIPBuf, const int32_t iIPBufLen )
 int64u_t net_ip2n( const int8_t *pIP )
 {
 	int64u_t iRetCode = 0;
-	
+
 	if ( pIP )
 	{
 		iRetCode = inet_addr( pIP );
@@ -315,6 +315,8 @@ int32_t net_bind( const CSocket *pSocket, const CNetAddr *pNetAddr )
       memset( &addr, 0x00, sizeof( addr ) );
       addr.sin_family = PF_INET;
       addr.sin_port = htons( pNetAddr->iPort );
+      
+      log_print( "%s:%d", pNetAddr->pIP, pNetAddr->iPort );
       if ( pNetAddr->pIP[0] >= '0' && pNetAddr->pIP[0] <= '9' )
       {
       	addr.sin_addr.s_addr = net_ip2n( pNetAddr->pIP );
@@ -336,7 +338,10 @@ int32_t net_bind( const CSocket *pSocket, const CNetAddr *pNetAddr )
       if ( iOkFlag && (bind( pSocket->iSocketId, (struct sockaddr *)&addr, sizeof(addr) ) >= 0) )
       	iRetCode = 0;
       else 
+      {
+      	perror( "bind failed:" );
       	log_print( "%s %s:%d !if ( iOkFlag && (bind( pSocket->iS failed????????????????", __FILE__, __FUNCTION__, __LINE__ );
+      }
 	}
 	else 
 		log_print( "%s %s:%d !if ( iSocketId && pNetAddr ) failed????????????????", __FILE__, __FUNCTION__, __LINE__ );
@@ -549,24 +554,52 @@ int32_t net_recv( const CSocket *pSocket, int8u_t *pRecvDataBuf, const int32_t i
 }
 
 //send udp data.
-int32_t net_sendto( const CSocket *pSocket, const int8u_t *pData, const int32_t iDataLen )
+int32_t net_sendto( const CSocket *pSocket, const int8u_t *pData, const int32_t iDataLen, CNetAddr *pPeerAddr )
 {
-	int32_t iRetCode = -1;
+	int32_t iRetCode = -100;
 	
-	if ( pSocket && pData && iDataLen > 0 )
+	if ( pSocket && pData && iDataLen > 0 && pPeerAddr )
 	{
 #if (__OS_LINUX__)
+		struct sockaddr_in addr;
+		int32_t iOkFlag = 0;
 		
-		iRetCode = sendto( pSocket->iSocketId, pData, iDataLen, 0, NULL, 0 );
+      //     configure ip & port for listen
+      memset( &addr, 0x00, sizeof( addr ) );
+      addr.sin_family = PF_INET;
+      addr.sin_port = htons( pPeerAddr->iPort );
+      if ( pPeerAddr->pIP[0] >= '0' && pPeerAddr->pIP[0] <= '9' )
+      {
+      	addr.sin_addr.s_addr = net_ip2n( pPeerAddr->pIP );
+      	
+      	iOkFlag = 1;
+      }
+      else 
+      {
+      	int8_t pIP[32] = { 0x00, };
+      	
+      	if ( net_get_domain_ip( pPeerAddr->pIP, pIP, sizeof(pIP) ) >= 0 )
+      	{
+      		addr.sin_addr.s_addr = net_ip2n( pIP );
+      			
+      		
+      		iOkFlag = 1;
+      	}
+      }
 		
-		if ( iRetCode < 0 )
+		if ( iOkFlag )
 		{
-			if ( EAGAIN != errno )
+			iRetCode = sendto( pSocket->iSocketId, pData, iDataLen, 0, &addr, sizeof(addr) );
+		
+			if ( iRetCode < 0 )
 			{
-				log_print( "%s %s:%d !if ( EAGAIN != errno ) failed????????????????", __FILE__, __FUNCTION__, __LINE__ );
+				if ( EAGAIN != errno )
+				{
+					log_print( "%s %s:%d !if ( EAGAIN != errno ) failed????????????????", __FILE__, __FUNCTION__, __LINE__ );
 				
-				iRetCode = SOCKET_ERROR;	
-			}
+					iRetCode = SOCKET_ERROR;	
+				}
+			}	
 		}
 
 #endif	
@@ -578,22 +611,35 @@ int32_t net_sendto( const CSocket *pSocket, const int8u_t *pData, const int32_t 
 }
 
 //receive upp data.
-int32_t net_recvfrom( const CSocket *pSocket, int8u_t *pRecvDataBuf, const int32_t iRecvBufLen )
+int32_t net_recvfrom( const CSocket *pSocket, int8u_t *pRecvDataBuf, const int32_t iRecvBufLen, CNetAddr *pPeerAddr )
 {
 	int32_t iRetCode = -1;
 	
-	if ( pSocket && pRecvDataBuf && iRecvBufLen > 0 )
+	if ( pSocket && pRecvDataBuf && iRecvBufLen > 0 && pPeerAddr )
 	{
 #if (__OS_LINUX__)
+		struct sockaddr_in addr;
+		int32_t iLen = sizeof(addr);
 		
-		iRetCode = recvfrom( pSocket->iSocketId, pRecvDataBuf, iRecvBufLen, 0, NULL, 0 );
+		memset( &addr, 0x00, sizeof(addr) );
+		iRetCode = recvfrom( pSocket->iSocketId, pRecvDataBuf, iRecvBufLen, 0, (struct sockaddr *)&addr, &iLen );
 		
-		if ( iRetCode < 0 )
+		if ( iRetCode <= 0 )
 		{
 			if ( EAGAIN != errno )
 			{
 				log_print( "%s %s:%d !if ( EAGAIN != errno ) failed????????????????", __FILE__, __FUNCTION__, __LINE__ );
 				iRetCode = SOCKET_ERROR;	
+			}
+		}
+		else 
+		{
+			int8_t pTempIPBuf[32] = { 0x00, };
+			
+			if ( net_n2ip( addr.sin_addr.s_addr, pTempIPBuf, sizeof(pTempIPBuf) ) >= 0 )
+			{
+				memcpy( pPeerAddr->pIP, pTempIPBuf, strlen(pTempIPBuf) + 1 );
+				pPeerAddr->iPort = net_n2hs( addr.sin_port );
 			}
 		}
 
