@@ -24,8 +24,12 @@ typedef struct CAcceptInfo_t
 CAcceptInfo fg_AcceptInfo[100];
 int counter = 0;
 
-int32_t tcp_reactor_callback( int32u_t iReactorId, int32u_t iSocketId, void *pUserData )
+CSocket *iTCPServiceSocketId = NULL;
+
+int32_t tcp_reactor_callback( CReactor *pReactor, CSocket *pSocket, void *pUserData )
 {
+	if ( pSocket == iTCPServiceSocketId )
+	{
 			CNetAddr stClientAddr;
 			CSocket *iNewSocketId = NULL;
 			int32_t iRetCode = -1;
@@ -33,12 +37,7 @@ int32_t tcp_reactor_callback( int32u_t iReactorId, int32u_t iSocketId, void *pUs
 			memset( &stClientAddr, 0x00, sizeof(stClientAddr) );
 			
 			log_print( "tcp_reactor_callback:------------------------------>" );
-			iNewSocketId = net_accept( iSocketId, &stClientAddr );
-
-			//log_print( "\r\n\r\nListen Socket Id-->\r\n" );
-			//net_test_socket( iSocketId );		
-			//log_print( "\r\n\r\nClient Socket Id-->\r\n" );
-			//net_test_socket( iNewSocketId );			
+			iNewSocketId = net_accept( pSocket, &stClientAddr );
 			
 			if ( !iNewSocketId )
 				return -1;
@@ -49,7 +48,7 @@ int32_t tcp_reactor_callback( int32u_t iReactorId, int32u_t iSocketId, void *pUs
 			{
 				
 				log_print( "accept_task: start to add reactor socket................" );
-				if ( add_reactor_socket( iReactorId, iNewSocketId, NULL ) >= 0 )
+				if ( add_reactor_socket( pReactor, iNewSocketId, NULL ) >= 0 )
 				{
 					log_print( "accept_task: add reactor socket ok...................." );
 
@@ -65,6 +64,37 @@ int32_t tcp_reactor_callback( int32u_t iReactorId, int32u_t iSocketId, void *pUs
 				log_print( "accept_task: set none blocking socket failed????????????????????????" );
 			
 			log_print( "tcp_reactor_callback:<------------------------------" );
+	}
+	else 
+	{
+		char recvBuf[1024] = { 0x00, };
+		
+		int32_t iRetCode = net_recv( pSocket, recvBuf, sizeof(recvBuf) );
+		if ( iRetCode > 0 )
+		{
+			char respbuf[1024 * 2] = { 0x00, };
+			log_print( recvBuf );
+			
+			sprintf( respbuf, "hi, %s", recvBuf );
+			
+			iRetCode = net_send( pSocket, respbuf, strlen(respbuf) + 1 );
+			if ( SOCKET_ERROR == iRetCode )
+			{
+				log_print( "close socket, pSocket->iSocketId-->%d....................", pSocket->iSocketId );
+				remove_reactor_socket( pReactor, pSocket );
+				pSocket = NULL;
+			}	
+		}
+		else 
+		{
+			if ( SOCKET_ERROR == iRetCode )
+			{
+				log_print( "close socket, pSocket->iSocketId-->%d....................", pSocket->iSocketId );
+				remove_reactor_socket( pReactor, pSocket );
+				pSocket = NULL;
+			}	
+		}
+	}
 	
 	return 0;
 }
@@ -92,7 +122,7 @@ int32_t main( int32_t argc, int8_t **argv )
 	iTCPReactorId = net_reactor(  );
 	if ( iTCPReactorId )
 	{
-		CSocket *iTCPServiceSocketId = NULL;
+		
 		
 		if ( register_reactor_callback( iTCPReactorId, tcp_reactor_callback, NULL ) < 0 )
 		{	
