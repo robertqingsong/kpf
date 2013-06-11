@@ -22,19 +22,16 @@ extern "C"
 #if (__OS_LINUX__)
 
 //create engine.
-int32u_t create_engine( void );
-
-//register reactor callback.
-int32_t register_engine_callback( int32u_t iEngineId, engine_callback_t callback );
+CNetEngine *create_engine( void );
 
 //destroy engine socket.
-void destroy_engine( int32u_t iEngineId );
+void destroy_engine( CNetEngine *pEngine );
 
 //add engine socket.
-int32_t add_engine_socket( int32u_t iEngineId, int32_t iSocketId, void *pUserData );
+int32_t add_engine_socket( CNetEngine *EngineId, int32_t iSocketId, void *pUserData );
 
 //remove engine socket.
-int32_t remove_engine_socket( int32u_t iEngineId, int32_t iSocketId );
+int32_t remove_engine_socket( CNetEngine *pEngine, int32_t iSocketId );
 
 #endif
 

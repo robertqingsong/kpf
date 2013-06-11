@@ -86,8 +86,7 @@ static int32_t destory_pine_node( CPine *pPine );
 int32_t init_pine_system( void )
 {
 	int32_t iRetCode = -1;
-	
-	log_print( "init_pine_system:------------------>" );
+
 	
 	if ( is_pine_ready() < 0 )
 	{
@@ -104,8 +103,6 @@ int32_t init_pine_system( void )
 	}
 	else 
 		iRetCode = 0;
-		
-	log_print( "init_pine_system end<------------------" );
 	
 	return iRetCode;
 }

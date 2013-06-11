@@ -27,27 +27,6 @@
 
 #endif
 
-//net reactor.
-typedef struct CReactor_t
-{
-	int32u_t iReactorId;
-	
-	int32u_t iEngineId;//net engine which is used to handle all sockets event in this reactor.
-	
-	reactor_callback_t fReactorCallback;
-	
-	void *pUserData;
-}CReactor;
-
-//socket define.
-typedef struct CSocket_t
-{
-	int32_t iSocketId;
-	
-	CReactor *pOwnerReactor;
-	
-	void *pUserData;
-}CSocket;
 
 typedef struct CReactorManager_t
 {
@@ -152,9 +131,9 @@ int32_t net_n2ip( const int64u_t inIP, int8_t *pIP, const int32_t iIPBufLen )
 }
 
 //create socket.
-int32u_t net_socket( const C_SOCKET_TYPE eSocketType, const int32_t iIsIPv6 )
+CSocket *net_socket( const C_SOCKET_TYPE eSocketType, const int32_t iIsIPv6 )
 {
-	int32u_t iRetCode = 0;
+	CSocket *pRetCode = NULL;
 	int32_t iSocketId = -1;
 	
 #if (__OS_LINUX__)
@@ -184,13 +163,19 @@ int32u_t net_socket( const C_SOCKET_TYPE eSocketType, const int32_t iIsIPv6 )
 			
 			pNewSocket->iSocketId = iSocketId;
 			
-			iRetCode = pNewSocket;
+			pRetCode = pNewSocket;
 		}
 		else 
 			log_print( "%s %s:%d !if ( pNewSocket ) failed????????????????", __FILE__, __FUNCTION__, __LINE__ );
 		
-		if ( 0 == iRetCode)
+		if ( NULL == pRetCode)
 		{
+			if ( pNewSocket )
+			{
+				mem_free( pNewSocket );
+				pNewSocket = NULL;				
+			}
+			
 			close( iSocketId );
 			iSocketId = -1;
 		}
@@ -199,20 +184,16 @@ int32u_t net_socket( const C_SOCKET_TYPE eSocketType, const int32_t iIsIPv6 )
 		log_print( "%s %s:%d !if ( iSocketId >= 0 ) failed????????????????", __FILE__, __FUNCTION__, __LINE__ );
 #endif
 	
-	return iRetCode;	
+	return pRetCode;	
 }
 
 //close socket.
-void net_close_socket( const int32u_t iSocketId )
+void net_close_socket( CSocket *pSocket )
 {	
 #if (__OS_LINUX__)
 	
-	if ( iSocketId )
-	{
-		CSocket *pSocket = NULL;
-
-		pSocket = (CSocket *)iSocketId;
-		
+	if ( pSocket )
+	{	
 		if ( pSocket->iSocketId >= 0 )
 		{
 			close( pSocket->iSocketId );
@@ -230,18 +211,14 @@ void net_close_socket( const int32u_t iSocketId )
 }
 
 //set socket property.
-int32_t net_set_socket( const int32u_t iSocketId, 
+int32_t net_set_socket( const CSocket *pSocket, 
 								const C_SOCKET_OPTION eOption, const CSocketParam *pSocketParam, const int32_t iParamSize )
 {
 	int32_t iRetCode = -1;
-	CSocket *pSocket = NULL;
 	
-	if ( !iSocketId )
+	if ( !pSocket )
 		return iRetCode;
 	
-	pSocket = (CSocket *)iSocketId;
-	log_print( "net_set_socket: pSocket----------------------------------->0x%x", pSocket );
-	log_print( "pSocket->iSocketId->%d", pSocket->iSocketId );
 	switch ( eOption )
 	{
 	case SOCKET_OPTION_NONE_BLOCK:
@@ -253,15 +230,13 @@ int32_t net_set_socket( const int32u_t iSocketId,
    	{
    		iSocketFlags = iSocketFlags | O_NONBLOCK;
    		
-   		log_print( "net_set_socket:pSocket->iSocketId-->%d", pSocket->iSocketId );
    		if ( fcntl( pSocket->iSocketId, F_SETFL, iSocketFlags ) >= 0 )
    		{
-				log_print( "set none block ok................." );
+				log_print( "pSocket->iSocketId-->%d, set none block ok.................", pSocket->iSocketId );
    			iRetCode = 0;
    		}
    		else 
    		{
-   			perror( "set none block failed:" );
    			log_print( "%s %s:%d !if ( fcntl( pSocket->iSocketId, F_SETFL failed????????????????", __FILE__, __FUNCTION__, __LINE__ );
    		}
    	}
@@ -277,7 +252,7 @@ int32_t net_set_socket( const int32u_t iSocketId,
 		
 		if ( setsockopt( pSocket->iSocketId, SOL_SOCKET, SO_REUSEADDR, &yes,
 								sizeof(yes)) >= 0 ) {
-			log_print( "set reuse address ok............................." );
+			log_print( "set reuse address ok, pSocket->iSocketId->%d.............................", pSocket->iSocketId );
 			iRetCode = 0;
 		}
 		else 
@@ -301,22 +276,17 @@ int32_t net_get_domain_ip( const int8_t *pDomainName, int8_t *pIP, const int32_t
 	if ( pDomainName && pIP && iIPBufLen > 0 )
 	{
 		struct hostent *pHost = NULL;
-		
 		pHost = gethostbyname( pDomainName );
 		if ( pHost )
 		{
 			struct sockaddr_in addr;
 			struct in_addr **ppAddrList = NULL;
-			
-			printf( "pDomainName-->%s.\r\n", pDomainName );
+		
 			
 			memset( &addr, 0x00, sizeof(addr) );
 			
-			printf( "start to get domain ip................\r\n" );
 			ppAddrList = (struct in_addr **)pHost->h_addr_list;
 			addr.sin_addr = *ppAddrList[0];
-			
-			printf( "get domain ip end..................\r\n" );
 		
 			iRetCode = net_n2ip( addr.sin_addr.s_addr, pIP, iIPBufLen );
 		}
@@ -330,19 +300,16 @@ int32_t net_get_domain_ip( const int8_t *pDomainName, int8_t *pIP, const int32_t
 }
 
 //bind socket and address.
-int32_t net_bind( const int32u_t iSocketId, const CNetAddr *pNetAddr )
+int32_t net_bind( const CSocket *pSocket, const CNetAddr *pNetAddr )
 {
 	int32_t iRetCode = -1;
 	int32_t iOkFlag = 0;
 	
 #if (__OS_LINUX__)
 	
-	if ( iSocketId && pNetAddr )
+	if ( pSocket && pNetAddr )
 	{
-		CSocket *pSocket = NULL;
 		struct sockaddr_in addr;
-		
-		pSocket = (CSocket *)iSocketId;
 		
       //     configure ip & port for listen
       memset( &addr, 0x00, sizeof( addr ) );
@@ -380,17 +347,13 @@ int32_t net_bind( const int32u_t iSocketId, const CNetAddr *pNetAddr )
 }
 
 //listen socket.
-int32_t net_listen( const int32u_t iSocketId, const int32_t iListenCount )
+int32_t net_listen( const CSocket *pSocket, const int32_t iListenCount )
 {
 	int32_t iRetCode = -1;
 
-	if ( iSocketId && iListenCount > 0 )
+	if ( pSocket && iListenCount > 0 )
 	{
 #if (__OS_LINUX__)
-	
-		CSocket *pSocket = NULL;
-		
-		pSocket = (CSocket *)iSocketId;
 	
 		if ( listen( pSocket->iSocketId, iListenCount ) >= 0 )
 			iRetCode = 0;
@@ -406,32 +369,21 @@ int32_t net_listen( const int32u_t iSocketId, const int32_t iListenCount )
 }
 
 //accept socket.
-int32u_t net_accept( const int32u_t iSocketId, CNetAddr *pClientAddr )
+CSocket *net_accept( const CSocket *pSocket, CNetAddr *pClientAddr )
 {
-	int32u_t iRetCode = 0;
+	CSocket *pRetCode = NULL;
 
-	if ( iSocketId && pClientAddr )
+	if ( pSocket && pClientAddr )
 	{
 #if (__OS_LINUX__)
-		CSocket *pSocket = NULL, *pNewSocket = NULL;
-		
-		pSocket = (CSocket *)iSocketId;
-		
-		log_print( "net_accept:pSocket->0x%x", pSocket );
-		log_print( "net_accept:pSocket->iSocketId->0x%x", pSocket->iSocketId );
-		log_print( "net_accept:pSocket->pOwnerReactor->0x%x", pSocket->pOwnerReactor );
-		log_print( "net_accept:pSocket->pUserData->0x%x", pSocket->pUserData );
-		
-		log_print( "net_accept:sizeof( *pNewSocket )-->%d", sizeof( *pNewSocket ) );
-		pNewSocket = mem_malloc( sizeof( *pNewSocket ) );
-		
+		CSocket *pNewSocket = NULL;
+	
+		pNewSocket = mem_malloc( sizeof( CSocket ) );
 		if ( pNewSocket )
 		{
 			int32_t iNewSocketId = -1;
 			struct sockaddr_in addr;
 			int32_t iLen = sizeof(addr);
-			
-			log_print( "net_accept:pNewSocket-->0x%x", pNewSocket );
 			
 			memset( pNewSocket, 0x00, sizeof(*pNewSocket) );
 			
@@ -439,10 +391,9 @@ int32u_t net_accept( const int32u_t iSocketId, CNetAddr *pClientAddr )
 			if ( iNewSocketId >= 0 )
 			{
 				const int8_t pClientIP[32] = { 0x00, };
-				
+	
 				pNewSocket->iSocketId = iNewSocketId;
 				pNewSocket->pOwnerReactor = pSocket->pOwnerReactor;
-			
 				
 				if ( net_n2ip( addr.sin_addr.s_addr, pClientIP, sizeof(pClientIP) ) >= 0 )
 				{
@@ -450,14 +401,9 @@ int32u_t net_accept( const int32u_t iSocketId, CNetAddr *pClientAddr )
 					
 					pClientAddr->iPort = net_n2hs( addr.sin_port );
 					
-					log_print( "net_accept:pNewSocket-->0x%x", pNewSocket );
-					log_print( "net_accept:pNewSocket->iSocketId-->%d", pNewSocket->iSocketId );
-					log_print( "net_accept:pNewSocket->pOwnerReactor->0x%x",pNewSocket->pOwnerReactor );
-					log_print( "net_accept:pNewSocket->pUserData->0x%x", pNewSocket->pUserData );
-				
-					log_print( "test is removed................" );
+					log_print( "accept ok, pNewSocket->iSocketId->%d", pNewSocket->iSocketId );
 					
-					iRetCode = pNewSocket;
+					pRetCode = pNewSocket;
 				}
 				else 
 					log_print( "%s %s:%d !if ( net_n2ip( addr.sin_addr.s failed????????????????", __FILE__, __FUNCTION__, __LINE__ );
@@ -465,11 +411,12 @@ int32u_t net_accept( const int32u_t iSocketId, CNetAddr *pClientAddr )
 			else 
 				log_print( "%s %s:%d !if ( iNewSocketId >= 0 ) failed????????????????", __FILE__, __FUNCTION__, __LINE__ );
 			
-			if ( 0 == iRetCode )
+			if ( NULL == pRetCode )
 			{
 				log_print( "accept failed????????????????????????????" );
 				mem_free( pNewSocket );
 				pNewSocket = NULL;
+				pRetCode = NULL;
 			}
 		}
 		else 
@@ -479,24 +426,21 @@ int32u_t net_accept( const int32u_t iSocketId, CNetAddr *pClientAddr )
 	else 
 		log_print( "%s %s:%d !if ( iSocketId && pCli failed????????????????", __FILE__, __FUNCTION__, __LINE__ );
 	
-	return iRetCode;	
+	return pRetCode;	
 }
 
 //bind socket and address.
-int32_t net_connect( const int32u_t iSocketId, const CNetAddr *pNetAddr )
+int32_t net_connect( const CSocket *pSocket, const CNetAddr *pNetAddr )
 {
 	int32_t iRetCode = -1;
 	int32_t iOkFlag = 0;
 	
 #if (__OS_LINUX__)
 	
-	if ( iSocketId && pNetAddr )
+	if ( pSocket && pNetAddr )
 	{
-		CSocket *pSocket = NULL;
 		struct sockaddr_in addr;
-		
-		pSocket = (CSocket *)iSocketId;
-		
+
       //     configure ip & port for listen
       memset( &addr, 0x00, sizeof( addr ) );
       addr.sin_family = PF_INET;
@@ -513,21 +457,7 @@ int32_t net_connect( const int32u_t iSocketId, const CNetAddr *pNetAddr )
       	if ( net_get_domain_ip( pNetAddr->pIP, pIP, sizeof(pIP) ) >= 0 )
       	{
       		addr.sin_addr.s_addr = net_ip2n( pIP );
-      		
-#if (LOG_SUPPORT)
-{
-				int8_t logBuf[128] = { 0x00, };
-				
-				printf( "pIP->%s.\r\n", pIP );
-				
-      		printf( "addr.sin_addr.s_addr-->%u\r\n", addr.sin_addr.s_addr );
-
-				net_n2ip( addr.sin_addr.s_addr, logBuf, sizeof(logBuf) );
-	
-				printf( "ip-->%s.\r\n", logBuf );
-		
-}
-#endif      		
+      			
       		
       		iOkFlag = 1;
       	}
@@ -549,32 +479,28 @@ int32_t net_connect( const int32u_t iSocketId, const CNetAddr *pNetAddr )
 }
 
 //send tcp data.
-int32_t net_send( int32u_t iSocketId, const int8u_t *pData, const int32_t iDataLen )
+int32_t net_send( const CSocket *pSocket, const int8u_t *pData, const int32_t iDataLen )
 {
 	int32_t iRetCode = -1;
 	
-	log_print( "net_send:------------------------_>" );
-	if ( iSocketId && pData && iDataLen > 0 )
+	if ( pSocket && pData && iDataLen > 0 )
 	{
 #if (__OS_LINUX__)
-		CSocket *pSocket = NULL;
-		
-		pSocket = (CSocket *)iSocketId;
-		
-		log_print( "pSocket-->%u", pSocket );
-		
+
 		iRetCode = send( pSocket->iSocketId, pData, iDataLen, 0 );
 		
 		if ( 0 == iRetCode )
 		{
-			log_print( "%s %s:%d !if ( 0 == iRetCode )failed????????????????", __FILE__, __FUNCTION__, __LINE__ );
+			log_print( "%s %s:%d !if ( 0 == iRetCode )failed, pSocket->iSocketId-->%d????????????????", 
+						__FILE__, __FUNCTION__, __LINE__, pSocket->iSocketId );
 			iRetCode = SOCKET_ERROR;	
 		}
 		else if ( iRetCode < 0 )
 		{
 			if ( EAGAIN != errno )
 			{
-				log_print( "%s %s:%d !if ( EAGAIN != errno ) failed????????????????", __FILE__, __FUNCTION__, __LINE__ );
+				log_print( "%s %s:%d !if ( EAGAIN != errno ) failed, pSocket->iSocketId-->%d????????????????", 
+								__FILE__, __FUNCTION__, __LINE__, pSocket->iSocketId );
 				
 				iRetCode = SOCKET_ERROR;	
 			}
@@ -585,22 +511,18 @@ int32_t net_send( int32u_t iSocketId, const int8u_t *pData, const int32_t iDataL
 	else 
 		log_print( "%s %s:%d !if ( iSocketId && pData & failed????????????????", __FILE__, __FUNCTION__, __LINE__ );
 	
-	log_print( "net_send:<------------------------" );
 	
 	return iRetCode;	
 }
 
 //receive tcp data.
-int32_t net_recv( int32u_t iSocketId, int8u_t *pRecvDataBuf, const int32_t iRecvBufLen )
+int32_t net_recv( const CSocket *pSocket, int8u_t *pRecvDataBuf, const int32_t iRecvBufLen )
 {
 	int32_t iRetCode = -1;
 	
-	if ( iSocketId && pRecvDataBuf && iRecvBufLen > 0 )
+	if ( pSocket && pRecvDataBuf && iRecvBufLen > 0 )
 	{
 #if (__OS_LINUX__)
-		CSocket *pSocket = NULL;
-		
-		pSocket = (CSocket *)iSocketId;
 		
 		iRetCode = recv( pSocket->iSocketId, pRecvDataBuf, iRecvBufLen, 0 );
 		
@@ -627,16 +549,13 @@ int32_t net_recv( int32u_t iSocketId, int8u_t *pRecvDataBuf, const int32_t iRecv
 }
 
 //send udp data.
-int32_t net_sendto( int32u_t iSocketId, const int8u_t *pData, const int32_t iDataLen )
+int32_t net_sendto( const CSocket *pSocket, const int8u_t *pData, const int32_t iDataLen )
 {
 	int32_t iRetCode = -1;
 	
-	if ( iSocketId && pData && iDataLen > 0 )
+	if ( pSocket && pData && iDataLen > 0 )
 	{
 #if (__OS_LINUX__)
-		CSocket *pSocket = NULL;
-		
-		pSocket = (CSocket *)iSocketId;
 		
 		iRetCode = sendto( pSocket->iSocketId, pData, iDataLen, 0, NULL, 0 );
 		
@@ -659,16 +578,13 @@ int32_t net_sendto( int32u_t iSocketId, const int8u_t *pData, const int32_t iDat
 }
 
 //receive upp data.
-int32_t net_recvfrom( int32u_t iSocketId, int8u_t *pRecvDataBuf, const int32_t iRecvBufLen )
+int32_t net_recvfrom( const CSocket *pSocket, int8u_t *pRecvDataBuf, const int32_t iRecvBufLen )
 {
 	int32_t iRetCode = -1;
 	
-	if ( iSocketId && pRecvDataBuf && iRecvBufLen > 0 )
+	if ( pSocket && pRecvDataBuf && iRecvBufLen > 0 )
 	{
 #if (__OS_LINUX__)
-		CSocket *pSocket = NULL;
-		
-		pSocket = (CSocket *)iSocketId;
 		
 		iRetCode = recvfrom( pSocket->iSocketId, pRecvDataBuf, iRecvBufLen, 0, NULL, 0 );
 		
@@ -752,22 +668,22 @@ void release_reactor( void )
 	release_reactor_manager(  );
 }
 
-static int32_t common_engine_callback( int32_t iSocketId, void *pUserData )
+int32_t common_engine_callback( const int32_t iSocketId, void *pUserData )
 {
 	int32_t iRetCode = -1;
 	CSocket *pSocket = NULL;
 	CReactor *pOwnerReactor = NULL;
 	
-	if ( !pUserData )
+	if ( iSocketId < 0 || !pUserData )
 		return iRetCode;
 	
-	pSocket = (CSocket *)pUserData;
+	pSocket = ((CSocket *)pUserData);
 	pOwnerReactor = pSocket->pOwnerReactor;
 	if ( pOwnerReactor )
 	{
 		if ( pOwnerReactor->fReactorCallback )
 		{
-			if ( pOwnerReactor->fReactorCallback( pOwnerReactor->iReactorId, iSocketId, pOwnerReactor->pUserData ) >= 0 )
+			if ( pOwnerReactor->fReactorCallback( pOwnerReactor, pSocket, pOwnerReactor->pUserData ) >= 0 )
 				iRetCode = 0;	
 		}
 	}
@@ -775,68 +691,15 @@ static int32_t common_engine_callback( int32_t iSocketId, void *pUserData )
 	return iRetCode;
 }
 
-//create reactor.
-int32u_t net_reactor( void )
-{
-	int32u_t iRetCode = 0;
-	CReactor *pNewReactor = NULL;
-	
-	lock( &( fg_ReactorManager.Locker ) );
-	
-	pNewReactor = mem_malloc( sizeof( *pNewReactor ) + sizeof( void * ) );
-	if ( pNewReactor )
-	{
-		memset( pNewReactor, 0x00, sizeof( *pNewReactor ) + sizeof( void * ) );
-		
-		pNewReactor->iEngineId = create_engine(  );
-		if ( pNewReactor->iEngineId > 0 )
-		{
-			if ( register_engine_callback( pNewReactor->iEngineId, common_engine_callback ) >= 0 )
-			{
-				iRetCode = (((int8u_t *)pNewReactor) + sizeof( *pNewReactor ));
-				
-				pNewReactor->iReactorId = iRetCode;
-			}
-			else 
-				log_print( "%s %s:%d !if ( register_engine_callback failed????????????????", __FILE__, __FUNCTION__, __LINE__ );
-		}
-		else 
-			log_print( "%s %s:%d !if ( pNewReactor->iEn failed????????????????", __FILE__, __FUNCTION__, __LINE__ );
-		
-		if ( 0 == iRetCode )
-		{
-			log_print( "%s %s:%d !if ( 0 == iRetCode ) failed????????????????", __FILE__, __FUNCTION__, __LINE__ );
-			
-			if ( pNewReactor->iEngineId )
-			{
-				destroy_engine( pNewReactor->iEngineId );
-				pNewReactor->iEngineId = NULL;
-			}
-			
-			mem_free( pNewReactor );
-			pNewReactor = NULL;
-		}
-	}
-	else 
-		log_print( "%s %s:%d !if ( pNewReactor ) failed????????????????", __FILE__, __FUNCTION__, __LINE__ );
-	
-	unlock( &( fg_ReactorManager.Locker ) );
-	
-	return iRetCode;
-}
 
 //register reactor data callback.
-int32_t register_reactor_callback( int32u_t iReactorId, reactor_callback_t callback, void *pUserData )
+int32_t register_reactor_callback( CReactor *pReactor, reactor_callback_t callback, void *pUserData )
 {
 	int32_t iRetCode = -1;
 	
-	if ( iReactorId > 0 && callback )
+	if ( pReactor > 0 && callback )
 	{
-		CReactor *pReactor = NULL;
-		
 		lock( &( fg_ReactorManager.Locker ) );
-		
-		pReactor = (CReactor *)(iReactorId - sizeof( *pReactor ));
 		
 		pReactor->fReactorCallback = callback;
 		pReactor->pUserData = pUserData;
@@ -851,20 +714,60 @@ int32_t register_reactor_callback( int32u_t iReactorId, reactor_callback_t callb
 	return iRetCode;	
 }
 
-//destroy reactor.
-void net_close_reactor( int32u_t iReactorId )
-{	
-	if ( iReactorId )
+//create reactor.
+CReactor *net_reactor( void )
+{
+	CReactor *pRetCode = NULL;
+	CReactor *pNewReactor = NULL;
+	
+	lock( &( fg_ReactorManager.Locker ) );
+	
+	pNewReactor = mem_malloc( sizeof( *pNewReactor ) );
+	if ( pNewReactor )
 	{
-		CReactor *pReactor = NULL;
+		memset( pNewReactor, 0x00, sizeof( *pNewReactor ) );
 		
+		pNewReactor->pEngine = create_engine(  );
+		if ( pNewReactor->pEngine )
+		{
+			log_print( "create reactor ok..................." );
+			pRetCode = pNewReactor;
+		}
+		else 
+			log_print( "%s %s:%d !if ( pNewReactor->iEn failed????????????????", __FILE__, __FUNCTION__, __LINE__ );
+		
+		if ( NULL == pRetCode )
+		{
+			log_print( "%s %s:%d !if ( 0 == iRetCode ) failed????????????????", __FILE__, __FUNCTION__, __LINE__ );
+			
+			if ( pNewReactor->pEngine )
+			{
+				destroy_engine( pNewReactor->pEngine );
+				pNewReactor->pEngine = NULL;
+			}
+			
+			mem_free( pNewReactor );
+			pNewReactor = NULL;
+		}
+	}
+	else 
+		log_print( "%s %s:%d !if ( pNewReactor ) failed????????????????", __FILE__, __FUNCTION__, __LINE__ );
+	
+	unlock( &( fg_ReactorManager.Locker ) );
+	
+	return pRetCode;
+}
+
+//destroy reactor.
+void net_close_reactor( CReactor *pReactor )
+{	
+	if ( pReactor )
+	{	
 		lock( &( fg_ReactorManager.Locker ) );
 		
-		pReactor = (CReactor *)(iReactorId - sizeof( *pReactor ));
-		
 		//close net engine.
-		destroy_engine( pReactor->iEngineId );
-		pReactor->iEngineId = 0;
+		destroy_engine( pReactor->pEngine );
+		pReactor->pEngine = 0;
 		
 		mem_free( pReactor );
 		pReactor = NULL;
@@ -876,71 +779,50 @@ void net_close_reactor( int32u_t iReactorId )
 }
 
 //add reactor socket.
-int32_t add_reactor_socket( int32u_t iReactorId, int32u_t iSocketId, void *pUserData )
+int32_t add_reactor_socket( CReactor *pReactor, CSocket *pSocket, void *pUserData )
 {
 	int32_t iRetCode = -1;
 	
-	log_print( "add_reactor_socket:----------------------------->" );
 	
-	if ( iReactorId && iSocketId )
+	if ( pReactor && pSocket )
 	{
-		CReactor *pReactor = NULL;
-		CSocket *pSocket = NULL;
-		
-		log_print( "param is ok............." );
-		
 		lock( &( fg_ReactorManager.Locker ) );
-		
-		pReactor = (CReactor *)(iReactorId - sizeof( *pReactor ));
-		
-		pSocket = (CSocket *)iSocketId;
-		if ( pSocket )
+
+			
+		pSocket->pUserData = pUserData;
+		pSocket->pOwnerReactor = pReactor;
+			
+		if ( add_engine_socket( pReactor->pEngine, pSocket->iSocketId, pSocket ) >= 0 )
 		{
-			log_print( "pSocket->0x%x", pSocket );
-			
-			pSocket->pUserData = pUserData;
-			pSocket->pOwnerReactor = pReactor;
-			
-			if ( add_engine_socket( pReactor->iEngineId, pSocket->iSocketId, pSocket ) >= 0 )
-			{
-				log_print( "add socket to engine ok..............." );
-				iRetCode = 0;
-			}
-			else 
-				log_print( "%s %s:%d !if ( add_engine_socket( pReactor->iE failed????????????????", __FILE__, __FUNCTION__, __LINE__ );
+			log_print( "add socket to engine ok, pSocket->iSocketId->%d...............", pSocket->iSocketId );
+			iRetCode = 0;
 		}
 		else 
-			log_print( "%s %s:%d !if ( pSocket ) failed????????????????", __FILE__, __FUNCTION__, __LINE__ );
+			log_print( "%s %s:%d !if ( add_engine_socket( pReactor->iE failed????????????????", __FILE__, __FUNCTION__, __LINE__ );
 		
 		unlock( &( fg_ReactorManager.Locker ) );
 	}
 	else 
 		log_print( "%s %s:%d !if ( iReactorId && iSocketId ) failed????????????????", __FILE__, __FUNCTION__, __LINE__ );
 		
-	log_print( "add_reactor_socket end<----------------------------------" );
 	
 	return iRetCode;
 }
 
 //remove reactor socket.
-int32_t remove_reactor_socket( int32u_t iReactorId, int32u_t iSocketId )
+int32_t remove_reactor_socket( CReactor *pReactor, CSocket *pSocket )
 {
 	int32_t iRetCode = -1;
 	
-	if ( iReactorId && iSocketId )
+	if ( pReactor && pSocket )
 	{
-		CReactor *pReactor = NULL;
-		CSocket *pSocket = NULL;
 		
 		lock( &( fg_ReactorManager.Locker ) );
 		
-		pReactor = (CReactor *)(iReactorId - sizeof( *pReactor ));
-		pSocket = (CSocket *)iSocketId;
-		
-		if ( remove_engine_socket( pReactor->iEngineId, pSocket->iSocketId ) >= 0 )
+		if ( remove_engine_socket( pReactor->pEngine, pSocket->iSocketId ) >= 0 )
 		{
-			net_close_socket( iSocketId );
-			iSocketId = 0;
+			net_close_socket( pSocket );
+			pSocket = 0;
 			
 			iRetCode = 0;
 		}

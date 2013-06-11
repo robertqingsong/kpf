@@ -183,7 +183,7 @@ int32u_t block_create( int32_t iTimeInSeconds )
 			
 			if ( insert_list_head_rear( &( fg_BlockManager.pBlockLHead ), &( pNewBlock->LNode ) ) >= 0 )
 			{
-				iRetCode = (((int8u_t *)pNewBlock) + sizeof( *pNewBlock ));
+				iRetCode = (int32u_t)(((int8u_t *)pNewBlock) + sizeof( *pNewBlock ));
 			}
 			
 			if ( 0 == iRetCode )
@@ -213,7 +213,7 @@ int32_t block_destroy( int32u_t iBlockId )
 		
 		lock( &( fg_BlockManager.Locker ) );
 		
-		pBlock = iBlockId - sizeof( *pBlock );
+		pBlock = (CBlock *)(iBlockId - sizeof( *pBlock ));
 		
 		if ( remove_list_head_node( &( fg_BlockManager.pBlockLHead ), &( pBlock->LNode ) ) >= 0 )
 		{

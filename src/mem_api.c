@@ -11,12 +11,12 @@ void *mem_malloc( int32_t iMemSize )
 {
 	void *pRetCode = NULL;
 	
-	log_print( "mem_malloc:-------------------->" );
+	//log_print( "mem_malloc:-------------------->" );
 	
 	if ( iMemSize > 0 )
 		pRetCode = malloc( iMemSize );
 		
-	log_print( "mem_malloc:-------------------->end" );
+	//log_print( "mem_malloc:-------------------->end" );
 	
 	return pRetCode;	
 }

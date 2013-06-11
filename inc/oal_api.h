@@ -11,6 +11,8 @@
 #include "config.h"
 #include "typedefs.h"
 
+#include "pine.h"
+
 #if defined(__cplusplus)
 extern "C"
 {
@@ -26,15 +28,29 @@ typedef enum
 
 typedef void *(*os_thread_t)( void *pParam );
 
+typedef struct CThread_t
+{
+	EXTENDS_PINE
+
+	os_thread_t thread;
+	C_THREAD_PRIORITY ePriority;
+	void *pParam;
+
+	int64u_t iTid;
+
+	int32_t iQuitFlag;
+
+}CThread;
+
 //get handle
 int32_t get_handle( void );
 
 //os thread api.
-int32u_t os_thread_create( os_thread_t thread, void *pParam, 
+CThread *os_thread_create( os_thread_t thread, void *pParam, 
 				C_THREAD_PRIORITY eThreadPriority, int32_t iStackSize );
 
 //quit thread.
-int32_t os_thread_wait( int32u_t iThreadId );
+int32_t os_thread_wait( CThread *pThread );
 
 //sleep api.
 void os_sleep( int32_t iTimeInMileSeconds );

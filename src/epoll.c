@@ -26,6 +26,9 @@
 #define MAX_EPOLL_SIZE  (1024 * 10)
 #define MAX_EPOLL_RUN_TIMEOUT  (100)
 
+
+extern int32_t common_engine_callback( const int32_t iSocketId, void *pUserData );
+
 static void *engin_proc_task( void *pParam )
 {
 	void *pRetCode = NULL;
@@ -48,21 +51,21 @@ static void *engin_proc_task( void *pParam )
 		
 		if ( iActiveSocketCount > 0 )
 		{
+			log_print( "their have sockets available, iActiveSocketCount->%d..................", iActiveSocketCount );
 			for ( i = 0; i < iActiveSocketCount; i++ )
 			{
 				int32_t iSocketId = pEvents[i].data.fd;
 				void *pUserData = pEvents[i].data.ptr;
 				
-				if ( pEngine->pEngineCallback )
+				log_print( "socket %d is active..............\r\n", iSocketId );
+				if ( common_engine_callback( iSocketId, pUserData ) < 0 )
 				{
-					//log_print( "socket %d is active..............\r\n", iSocketId );
-					if ( pEngine->pEngineCallback( iSocketId, pUserData ) < 0 )
-					{
-						//log_print( "engine callback returns < 0 failed?????????????????????" );	
-					}
+					log_print( "engine callback returns < 0 failed?????????????????????" );	
 				}
 			}
 		}
+		//else 
+			//log_print( "no active socket available................." );
 	}
 	
 	mem_free( pEvents );
@@ -71,16 +74,16 @@ static void *engin_proc_task( void *pParam )
 	return pRetCode;	
 }
 
-int32u_t create_engine( void )
+CNetEngine *create_engine( void )
 {
-	int32u_t iRetCode = 0;
+	CNetEngine *pRetCode = NULL;
 	
 	CNetEngine *pNewEngine = NULL;
 		
-	pNewEngine = mem_malloc( sizeof( *pNewEngine ) + sizeof( void * ) );
+	pNewEngine = mem_malloc( sizeof( *pNewEngine ) );
 	if ( pNewEngine )
 	{
-		memset( pNewEngine, 0x00, sizeof( *pNewEngine ) + sizeof( void * ) );
+		memset( pNewEngine, 0x00, sizeof( *pNewEngine ) );
 		
 		//create epoll id.
 		pNewEngine->iEngineId = epoll_create( MAX_EPOLL_SIZE );
@@ -88,10 +91,10 @@ int32u_t create_engine( void )
 		{
 			//create epoll task.
 			pNewEngine->iIsRunning = 1;
-			pNewEngine->iEngineTid = os_thread_create( engin_proc_task, pNewEngine, OS_THREAD_PRIORITY_NORMAL, 1024 * 512 );
-			if ( pNewEngine->iEngineTid > 0 )
+			pNewEngine->pEngineThread = os_thread_create( engin_proc_task, pNewEngine, OS_THREAD_PRIORITY_NORMAL, 1024 * 512 );
+			if ( pNewEngine->pEngineThread )
 			{
-				iRetCode = (((int8u_t *)pNewEngine) + sizeof( *pNewEngine ));
+				pRetCode = pNewEngine;
 			}
 			else 
 			{
@@ -99,12 +102,12 @@ int32u_t create_engine( void )
 				pNewEngine->iIsRunning = 0;
 			}
 				
-			if ( 0 == iRetCode)
+			if ( NULL == pRetCode)
 			{
-				mem_free( pNewEngine );
-					
 				close( pNewEngine->iEngineId );
 				pNewEngine->iEngineId = -1;
+				
+				mem_free( pNewEngine );
 					
 				pNewEngine = NULL;
 			}
@@ -115,38 +118,16 @@ int32u_t create_engine( void )
 	else 
 		log_print( "%s %s:%d !if ( pNewEngine ) failed????????????????", __FILE__, __FUNCTION__, __LINE__ );
 	
-	return iRetCode;	
+	return pRetCode;	
 }
 
-//register reactor callback.
-int32_t register_engine_callback( int32u_t iEngineId, engine_callback_t callback )
+void destroy_engine( CNetEngine *pEngine )
 {
-	int32_t iRetCode = -1;
-	
-	if ( iEngineId && callback )
+	if ( pEngine )
 	{
-		CNetEngine *pEngine = NULL;
+		pEngine->iIsRunning = 0;
+		os_thread_wait( pEngine->pEngineThread );
 		
-		pEngine = iEngineId - sizeof( *pEngine );
-		
-		pEngine->pEngineCallback = callback;
-		
-		iRetCode = 0;
-	}
-	else 
-		log_print( "%s %s:%d !if ( iEngineId && callback ) failed????????????????", __FILE__, __FUNCTION__, __LINE__ );
-	
-	return iRetCode;	
-}
-
-void destroy_engine( int32u_t iEngineId )
-{
-	if ( iEngineId )
-	{
-		CNetEngine *pEngine = NULL;
-		
-		pEngine = iEngineId - sizeof( *pEngine );
-
 		//close epoll or kqueue id.
 		close( pEngine->iEngineId );
 		pEngine->iEngineId = -1;
@@ -158,17 +139,14 @@ void destroy_engine( int32u_t iEngineId )
 }
 
 //add engine socket.
-int32_t add_engine_socket( int32u_t iEngineId, int32_t iSocketId, void *pUserData )
+int32_t add_engine_socket( CNetEngine *pEngine, int32_t iSocketId, void *pUserData )
 {
 	int32_t iRetCode = -1;
 	
 	log_print( "add_engine_socket:-------------------------->" );
-	if ( iEngineId && iSocketId >= 0 )
+	if ( pEngine && iSocketId >= 0 )
 	{
-		CNetEngine *pEngine = NULL;
 		struct epoll_event ev;
-		
-		pEngine = iEngineId - sizeof( *pEngine );
 		
 		//add socket to ...
 		memset( &ev, 0x00, sizeof(ev) );
@@ -176,9 +154,13 @@ int32_t add_engine_socket( int32u_t iEngineId, int32_t iSocketId, void *pUserDat
 		ev.data.fd = iSocketId;
 		ev.data.ptr = pUserData;
 		
-		log_print( "start to add socket to epoll, iSocketId->%d...............", iSocketId );
+		log_print( "start to add socket to epoll: pEngine->iEngineId->%d, iSocketId->%d...............", 
+						pEngine->iEngineId, iSocketId );
 		if ( epoll_ctl( pEngine->iEngineId, EPOLL_CTL_ADD, iSocketId, &ev ) >= 0 )
+		{
+			log_print( "add socket to epoll ok................." );
 			iRetCode = 0;
+		}
 		else 
 			log_print( "%s %s:%d !if ( epoll_ctl( pEngine->iE failed????????????????", __FILE__, __FUNCTION__, __LINE__ );
 	}
@@ -191,16 +173,13 @@ int32_t add_engine_socket( int32u_t iEngineId, int32_t iSocketId, void *pUserDat
 }
 
 //remove engine socket.
-int32_t remove_engine_socket( int32u_t iEngineId, int32_t iSocketId )
+int32_t remove_engine_socket( CNetEngine *pEngine, int32_t iSocketId )
 {
 	int32_t iRetCode = -1;
 	
-	if ( iEngineId && iSocketId >= 0 )
+	if ( pEngine && iSocketId >= 0 )
 	{
-		CNetEngine *pEngine = NULL;
 		struct epoll_event ev;
-		
-		pEngine = iEngineId - sizeof( *pEngine );
 		
 		memset( &ev, 0x00, sizeof(ev) );
 		ev.events = EPOLLIN | EPOLLET;
@@ -209,6 +188,7 @@ int32_t remove_engine_socket( int32u_t iEngineId, int32_t iSocketId )
 		
 		log_print( "start to delete socket from epoll................" );
 		epoll_ctl( pEngine->iEngineId, EPOLL_CTL_DEL, iSocketId, &ev );
+		log_print( "remove socket from epoll ok.................." );
 		
 		iRetCode = 0;
 	}

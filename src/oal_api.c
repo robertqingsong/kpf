@@ -13,21 +13,6 @@
 
 #include "../inc/mem_api.h"
 
-#include "../inc/pine.h"
-
-typedef struct CThread_t
-{
-	EXTENDS_PINE
-
-	os_thread_t thread;
-	C_THREAD_PRIORITY ePriority;
-	void *pParam;
-
-	int64u_t iTid;
-
-	int32_t iQuitFlag;
-
-}CThread;
 
 
 //thread methods.
@@ -55,10 +40,10 @@ int32_t get_handle( void )
 }
 
 //os thread api.
-int32u_t os_thread_create( os_thread_t thread, void *pParam,  
+CThread *os_thread_create( os_thread_t thread, void *pParam,  
                                 C_THREAD_PRIORITY eThreadPriority, int32_t iStackSize )
 {
-	int32u_t iRetCode = 0;
+	CThread *pRetCode = NULL;
 
 	if ( iStackSize <= 0 )
 		iStackSize = DEFAULT_STACK_SIZE;
@@ -105,7 +90,7 @@ int32u_t os_thread_create( os_thread_t thread, void *pParam,
 					if ( pthread_create( (pthread_t *)&(pThread->iTid), &attr, os_common_thread, pThread ) == 0 )
 					{
 						//log_print(" create thread ok!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" );
-						iRetCode = (int32u_t)( pThread );
+						pRetCode = pThread;
 						
 					//	log_print( "Thread Id----------------------------->%u", iRetCode );
 					}
@@ -120,9 +105,9 @@ int32u_t os_thread_create( os_thread_t thread, void *pParam,
 				pthread_attr_destroy( &attr );
 			}
 	
-			if ( iRetCode == 0 )
+			if ( NULL == pRetCode )
 			{
-				log_print( "%s %s-%d: create thread failed.iRetCode->%u\r\n", __FILE__, __FUNCTION__, __LINE__, iRetCode );
+				log_print( "%s %s-%d: create thread failed.iRetCode->%u\r\n", __FILE__, __FUNCTION__, __LINE__, pRetCode );
 				
 				pine_release( pThread );
 				pThread = NULL;
@@ -132,17 +117,16 @@ int32u_t os_thread_create( os_thread_t thread, void *pParam,
 #endif
 	}
 
-	return iRetCode;
+	return pRetCode;
 }
 
 //quit thread.
-int32_t os_thread_wait( int32u_t iThreadId )
+int32_t os_thread_wait( CThread *pThread )
 {
 	int32_t iRetCode = -1;
 
-	if ( iThreadId > 0 )
+	if ( pThread )
 	{
-		CThread *pThread = (CThread *)iThreadId;
 		while ( !(pThread->iQuitFlag) )
 		{
 			os_sleep( 10 );
@@ -152,7 +136,7 @@ int32_t os_thread_wait( int32u_t iThreadId )
 		iRetCode = pine_release( (CPine *)pThread );
 	}
 	else 
-		log_print( "%s %s-%d: iThreadId->%u ????????????????????\r\n", __FILE__, __FUNCTION__, __LINE__, iThreadId );
+		log_print( "%s %s-%d: iThreadId->%u ????????????????????\r\n", __FILE__, __FUNCTION__, __LINE__, pThread );
 
 	return iRetCode;
 }
