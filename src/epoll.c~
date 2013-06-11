@@ -162,7 +162,6 @@ int32_t add_engine_socket( int32u_t iEngineId, int32_t iSocketId, void *pUserDat
 {
 	int32_t iRetCode = -1;
 	
-	log_print( "add_engine_socket:-------------------------->" );
 	if ( iEngineId && iSocketId >= 0 )
 	{
 		CNetEngine *pEngine = NULL;
@@ -184,8 +183,6 @@ int32_t add_engine_socket( int32u_t iEngineId, int32_t iSocketId, void *pUserDat
 	}
 	else 
 		log_print( "%s %s:%d !if ( iEngineId && iSocketId >= 0 ) failed????????????????", __FILE__, __FUNCTION__, __LINE__ );
-	
-	log_print( "add_engine_socket<--------------------------------" );	
 	
 	return iRetCode;	
 }
