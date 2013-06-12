@@ -5,11 +5,12 @@
 #include "../inc/select.h"
 #include "../inc/epoll.h"
 #include "../inc/kqueue.h"
-#include "../inc/lock.h"
 
 #include "../inc/mem_api.h"
 
 #include "../inc/log.h"
+
+#include "../inc/queue.h"
 
 #if (__OS_LINUX__)
 
@@ -26,19 +27,6 @@
 #include <netdb.h>
 
 #endif
-
-
-typedef struct CReactorManager_t
-{
-	int32_t iInitFlag;
-	
-	CMutex Locker;
-}CReactorManager;
-
-static CReactorManager fg_ReactorManager = {
-	0, 
-	
-};
 
 //get local ip.
 int32_t net_get_local_ip( int8_t *pIPBuf, const int32_t iIPBufLen )
@@ -162,6 +150,7 @@ CSocket *net_socket( const C_SOCKET_TYPE eSocketType, const int32_t iIsIPv6 )
 			memset( pNewSocket, 0x00, sizeof( *pNewSocket ) );
 			
 			pNewSocket->iSocketId = iSocketId;
+		
 			
 			pRetCode = pNewSocket;
 		}
@@ -651,67 +640,34 @@ int32_t net_recvfrom( const CSocket *pSocket, int8u_t *pRecvDataBuf, const int32
 	return iRetCode;	
 }
 
-static int32_t is_reactor_manager_ready( void )
+//--------------------------------------------------------------------------->
+typedef struct CRemoveSocket_t
 {
-	int32_t iRetCode = -1;
+	CSocket *pSocket;
 	
-	if ( fg_ReactorManager.iInitFlag )	
-		iRetCode = 0;	
+	CReactor *pReactor;
 	
-	return iRetCode;
-}
+	CQueueNode QNode;
+}CRemoveSocket;
 
-static int32_t init_reactor_manager( void )
-{
-	int32_t iRetCode = -1;
+static CQueue fg_SocketRemoveQ;
 
-	if ( !(fg_ReactorManager.iInitFlag) )	
-	{
-		if ( init_mutex( &( fg_ReactorManager.Locker ) ) >= 0 )
-		{
-			lock( &( fg_ReactorManager.Locker ) );
-			
-			fg_ReactorManager.iInitFlag = 1;
-			
-			iRetCode = 0;
-			
-			unlock( &( fg_ReactorManager.Locker ) );
-		}
-		else 
-			log_print( "%s %s:%d !if ( init_mutex( &( fg_ReactorM failed????????????????", __FILE__, __FUNCTION__, __LINE__ );
-	}
-	else  
-		iRetCode = 0;
-	
-	return iRetCode;
-}
-
-static void release_reactor_manager( void )
-{
-	if ( is_reactor_manager_ready(  ) >= 0 )
-	{
-		lock( &( fg_ReactorManager.Locker ) );
-		
-		fg_ReactorManager.iInitFlag = 0;
-		
-		unlock( &( fg_ReactorManager.Locker ) );
-	}
-}
-
-//init reactor.
 int32_t init_reactor( void )
 {
 	int32_t iRetCode = -1;
 	
-	iRetCode = init_reactor_manager(  );
+	if ( init_queue( &( fg_SocketRemoveQ ) ) >= 0 )
+	{
+		if ( set_queue_water_level( &( fg_SocketRemoveQ ), 1024 * 1024 * 1000 ) >= 0 )
+			iRetCode = 0;	
+	}
 	
 	return iRetCode;	
 }
 
-//release reactor.
 void release_reactor( void )
 {
-	release_reactor_manager(  );
+	
 }
 
 int32_t common_engine_callback( const int32_t iSocketId, void *pUserData )
@@ -719,13 +675,41 @@ int32_t common_engine_callback( const int32_t iSocketId, void *pUserData )
 	int32_t iRetCode = -1;
 	CSocket *pSocket = NULL;
 	CReactor *pOwnerReactor = NULL;
-	
+	CRemoveSocket *pRemoveSocket = NULL;
+	CQueueNode *pQNode = NULL;
+	int32_t iOkFlag = 1;
+			
 	if ( iSocketId < 0 || !pUserData )
 		return iRetCode;
-	
+		
 	pSocket = ((CSocket *)pUserData);
 	pOwnerReactor = pSocket->pOwnerReactor;
-	if ( pOwnerReactor )
+	if ( !pOwnerReactor )
+		return iRetCode;
+		
+	lock( &( pOwnerReactor->Locker ) );
+		
+	while ( (pQNode = de_queue( &( fg_SocketRemoveQ ) ) ) )
+	{
+		pRemoveSocket = CONTAINER_OF_QUEUE( pQNode, CRemoveSocket );
+		
+		if ( pSocket == pRemoveSocket->pSocket )
+			iOkFlag = 0;
+			
+		if ( remove_engine_socket( pRemoveSocket->pReactor->pEngine, pRemoveSocket->pSocket->iSocketId ) >= 0 )
+		{
+			net_close_socket( pRemoveSocket->pSocket );
+			pRemoveSocket->pSocket = 0;
+			
+		}
+		else 
+			log_print( "%s %s:%d !if ( remove_engine_socket( pRe failed????????????????", __FILE__, __FUNCTION__, __LINE__ );
+			
+		mem_free( pRemoveSocket );
+		pRemoveSocket = NULL;
+	}
+	
+	if ( iOkFlag )
 	{
 		if ( pOwnerReactor->fReactorCallback )
 		{
@@ -733,6 +717,8 @@ int32_t common_engine_callback( const int32_t iSocketId, void *pUserData )
 				iRetCode = 0;	
 		}
 	}
+	
+	unlock( &( pOwnerReactor->Locker ) );
 	
 	return iRetCode;
 }
@@ -745,14 +731,14 @@ int32_t register_reactor_callback( CReactor *pReactor, reactor_callback_t callba
 	
 	if ( pReactor > 0 && callback )
 	{
-		lock( &( fg_ReactorManager.Locker ) );
-		
+		lock( &( pReactor->Locker ) );
+
 		pReactor->fReactorCallback = callback;
 		pReactor->pUserData = pUserData;
 		
 		iRetCode = 0;
 		
-		unlock( &( fg_ReactorManager.Locker ) );
+		unlock( &( pReactor->Locker ) );
 	}
 	else 
 		log_print( "%s %s:%d !if ( iReactorId > 0 && callback ) failed????????????????", __FILE__, __FUNCTION__, __LINE__ );
@@ -766,26 +752,27 @@ CReactor *net_reactor( void )
 	CReactor *pRetCode = NULL;
 	CReactor *pNewReactor = NULL;
 	
-	lock( &( fg_ReactorManager.Locker ) );
-	
 	pNewReactor = mem_malloc( sizeof( *pNewReactor ) );
 	if ( pNewReactor )
 	{
 		memset( pNewReactor, 0x00, sizeof( *pNewReactor ) );
 		
-		pNewReactor->pEngine = create_engine(  );
-		if ( pNewReactor->pEngine )
+		if ( init_mutex( &( pNewReactor->Locker ) ) >= 0 )
 		{
-			log_print( "create reactor ok..................." );
-			pRetCode = pNewReactor;
+			pNewReactor->pEngine = create_engine(  );
+			if ( pNewReactor->pEngine )
+			{
+				log_print( "create reactor ok..................." );
+				pRetCode = pNewReactor;
+			}
+			else 
+				log_print( "%s %s:%d !if ( pNewReactor->iEn failed????????????????", __FILE__, __FUNCTION__, __LINE__ );
 		}
-		else 
-			log_print( "%s %s:%d !if ( pNewReactor->iEn failed????????????????", __FILE__, __FUNCTION__, __LINE__ );
-		
+	
 		if ( NULL == pRetCode )
 		{
 			log_print( "%s %s:%d !if ( 0 == iRetCode ) failed????????????????", __FILE__, __FUNCTION__, __LINE__ );
-			
+
 			if ( pNewReactor->pEngine )
 			{
 				destroy_engine( pNewReactor->pEngine );
@@ -794,12 +781,10 @@ CReactor *net_reactor( void )
 			
 			mem_free( pNewReactor );
 			pNewReactor = NULL;
-		}
+		}	
 	}
 	else 
 		log_print( "%s %s:%d !if ( pNewReactor ) failed????????????????", __FILE__, __FUNCTION__, __LINE__ );
-	
-	unlock( &( fg_ReactorManager.Locker ) );
 	
 	return pRetCode;
 }
@@ -809,7 +794,7 @@ void net_close_reactor( CReactor *pReactor )
 {	
 	if ( pReactor )
 	{	
-		lock( &( fg_ReactorManager.Locker ) );
+		lock( &( pReactor->Locker ) );
 		
 		//close net engine.
 		destroy_engine( pReactor->pEngine );
@@ -818,7 +803,7 @@ void net_close_reactor( CReactor *pReactor )
 		mem_free( pReactor );
 		pReactor = NULL;
 		
-		unlock( &( fg_ReactorManager.Locker ) );
+		unlock( &( pReactor->Locker ) );
 	}
 	else 
 		log_print( "%s %s:%d !if ( iReactorId ) failed????????????????", __FILE__, __FUNCTION__, __LINE__ );
@@ -829,12 +814,8 @@ int32_t add_reactor_socket( CReactor *pReactor, CSocket *pSocket, void *pUserDat
 {
 	int32_t iRetCode = -1;
 	
-	
 	if ( pReactor && pSocket )
 	{
-		lock( &( fg_ReactorManager.Locker ) );
-
-			
 		pSocket->pUserData = pUserData;
 		pSocket->pOwnerReactor = pReactor;
 			
@@ -845,8 +826,6 @@ int32_t add_reactor_socket( CReactor *pReactor, CSocket *pSocket, void *pUserDat
 		}
 		else 
 			log_print( "%s %s:%d !if ( add_engine_socket( pReactor->iE failed????????????????", __FILE__, __FUNCTION__, __LINE__ );
-		
-		unlock( &( fg_ReactorManager.Locker ) );
 	}
 	else 
 		log_print( "%s %s:%d !if ( iReactorId && iSocketId ) failed????????????????", __FILE__, __FUNCTION__, __LINE__ );
@@ -862,20 +841,25 @@ int32_t remove_reactor_socket( CReactor *pReactor, CSocket *pSocket )
 	
 	if ( pReactor && pSocket )
 	{
+		CRemoveSocket *pRemoveSocket = NULL;
 		
-		lock( &( fg_ReactorManager.Locker ) );
-		
-		if ( remove_engine_socket( pReactor->pEngine, pSocket->iSocketId ) >= 0 )
+		pRemoveSocket = mem_malloc( sizeof( *pRemoveSocket ) );
+		if ( pRemoveSocket )
 		{
-			net_close_socket( pSocket );
-			pSocket = 0;
+			memset( pRemoveSocket, 0x00, sizeof( *pRemoveSocket ) );
 			
-			iRetCode = 0;
+			pRemoveSocket->pSocket = pSocket;
+			pRemoveSocket->pReactor = pReactor;
+			
+			if ( en_queue( &( fg_SocketRemoveQ ), &( pRemoveSocket->QNode ) ) >= 0 )
+				iRetCode = 0;
+			else 
+			{
+				mem_free( pRemoveSocket );
+				
+				pRemoveSocket = NULL;		
+			}
 		}
-		else 
-			log_print( "%s %s:%d !if ( remove_engine_socket( pRe failed????????????????", __FILE__, __FUNCTION__, __LINE__ );
-		
-		unlock( &( fg_ReactorManager.Locker ) );
 	}
 	else 
 		log_print( "%s %s:%d !if ( iReactorId && iSocketId ) failed????????????????", __FILE__, __FUNCTION__, __LINE__ );

@@ -13,6 +13,8 @@
 
 #include "oal_api.h"
 
+#include "lock.h"
+
 
 #if defined(__cplusplus)
 extern "C"
@@ -72,6 +74,8 @@ typedef struct CReactor_t
 	
 	reactor_callback_t fReactorCallback;
 	
+	CMutex Locker;
+	
 	void *pUserData;
 }CReactor;
 
@@ -130,13 +134,11 @@ int32_t net_sendto( const CSocket *pSocketId, const int8u_t *pData, const int32_
 
 //receive upp data.
 int32_t net_recvfrom( const CSocket *pSocketId, int8u_t *pRecvDataBuf, const int32_t iRecvBufLen, CNetAddr *pPeerAddr );
-							
-//init reactor.
-int32_t init_reactor( void );
-
-//release reactor.
-void release_reactor( void );
 	
+//reactor api.
+int32_t init_reactor( void );	
+void release_reactor( void );	
+
 //create reactor.
 CReactor *net_reactor( void );
 
