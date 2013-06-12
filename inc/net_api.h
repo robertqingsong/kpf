@@ -25,14 +25,16 @@ extern "C"
 typedef enum
 {
 	SOCKET_TYPE_STREAM = 1, 
-	SOCKET_TYPE_DGRAM
+	SOCKET_TYPE_DGRAM, 
+	SOCKET_TYPE_MULTICAST
 }C_SOCKET_TYPE;
 
 //socket property.
 typedef enum
 {
 	SOCKET_OPTION_NONE_BLOCK, 
-	SOCKET_OPTION_REUSE_ADDRESS
+	SOCKET_OPTION_REUSE_ADDRESS, 
+	SOCKET_OPTION_SET_MULTICAST
 }C_SOCKET_OPTION;
 
 #define SOCKET_ERROR  (-1)
@@ -50,7 +52,9 @@ typedef struct CNetAddr_t
 //socket param.
 typedef struct CSocketParam_t
 {
-	int32_t i;
+	int8_t *pIP[32];
+	int16u_t iPort;
+	
 }CSocketParam;
 
 //net engine.select, epoll, kqueue.

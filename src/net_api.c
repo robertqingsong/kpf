@@ -131,6 +131,10 @@ CSocket *net_socket( const C_SOCKET_TYPE eSocketType, const int32_t iIsIPv6 )
 			iSocketId = socket( AF_INET6, SOCK_STREAM, 0 );
 		else if ( SOCKET_TYPE_DGRAM == eSocketType )
 			iSocketId = socket( AF_INET6, SOCK_DGRAM, 0 );
+		else if ( SOCKET_TYPE_MULTICAST == eSocketType )
+		{
+			iSocketId = socket( AF_INET6, SOCK_DGRAM, 0 );
+		}
 	}
 	else 
 	{
@@ -138,6 +142,10 @@ CSocket *net_socket( const C_SOCKET_TYPE eSocketType, const int32_t iIsIPv6 )
 			iSocketId = socket( AF_INET, SOCK_STREAM, 0 );
 		else if ( SOCKET_TYPE_DGRAM == eSocketType )
 			iSocketId = socket( AF_INET, SOCK_DGRAM, 0 );
+		else if ( SOCKET_TYPE_MULTICAST == eSocketType )
+		{
+			iSocketId = socket( AF_INET, SOCK_DGRAM, 0 );
+		}
 	}
 	
 	if ( iSocketId >= 0 )
@@ -246,6 +254,38 @@ int32_t net_set_socket( const CSocket *pSocket,
 		}
 		else 
 			log_print( "%s %s:%d !if ( setsockopt( pSocket->iSocketId, SOL failed????????????????", __FILE__, __FUNCTION__, __LINE__ );
+#endif
+	}break ;
+	case SOCKET_OPTION_SET_MULTICAST:
+	{
+#if (__OS_LINUX__)
+
+		if ( pSocketParam && iParamSize == sizeof( *pSocketParam ) )
+		{
+			if ( net_set_socket( pSocket, SOCKET_OPTION_REUSE_ADDRESS, NULL, 0 ) >= 0 )
+			{
+				CNetAddr stNetAddr;
+				
+				memset( &stNetAddr, 0x00, sizeof(stNetAddr) );
+				
+				memcpy( stNetAddr.pIP, pSocketParam->pIP, strlen(pSocketParam->pIP) );
+				stNetAddr.iPort = pSocketParam->iPort;
+				
+				if ( net_bind( pSocket, &stNetAddr ) >= 0 )
+				{
+					struct ip_mreq mreq;
+					
+					memset( &mreq, 0x00, sizeof(mreq) );
+					
+					/* use setsockopt() to request that the kernel join a multicast group */
+    				mreq.imr_multiaddr.s_addr = net_ip2n( pSocketParam->pIP );
+     				mreq.imr_interface.s_addr= net_h2ns( INADDR_ANY );
+     				if (setsockopt( pSocket->iSocketId, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq) ) >= 0)
+     					iRetCode = 0;
+				}
+			}
+		}
+
 #endif
 	}break ;
 	default:

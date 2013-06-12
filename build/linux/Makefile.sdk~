@@ -25,9 +25,11 @@ demo:
 	$(CC) ../../sdk/tcp_server.c $(LDFLAGS) $(INCLUDE_DIR) -o tcp_server -L./ -lkpf -lpthread
 	$(CC) ../../sdk/udp_server.c $(LDFLAGS) $(INCLUDE_DIR) -o udp_server -L./ -lkpf -lpthread
 	$(CC) ../../sdk/udp_client.c $(LDFLAGS) $(INCLUDE_DIR) -o udp_client -L./ -lkpf -lpthread
+	$(CC) ../../sdk/multicast_listener.c $(LDFLAGS) $(INCLUDE_DIR) -o multicast_listener -L./ -lkpf -lpthread
+	$(CC) ../../sdk/multicast_sender.c $(LDFLAGS) $(INCLUDE_DIR) -o multicast_sender -L./ -lkpf -lpthread
 
 clean:
 	$(RM) -rf $(OBJECTS)
 	$(RM) -rf $(TARGET)
-	$(RM) -rf demo
+	$(RM) -rf demo tcp_server udp_server udp_client
 
