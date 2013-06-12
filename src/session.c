@@ -5,11 +5,12 @@
 //create session.
 CSession *create_session( C_SESSION_TYPE eSessionType, const CSessionParam *pSessionParam )
 {
-	CSession *pRetCode = NULL;
-	pRetCode = mem_malloc( sizeof( *pRetCode ) );
-	if ( pRetCode )
+	CSession *pRetCode = NULL, *pNewSession = NULL;
+	
+	pNewSession = mem_malloc( sizeof( *pNewSession ) );
+	if ( pNewSession )
 	{
-		memset( pRetCode, 0x00, sizeof(*pRetCode) );
+		memset( pNewSession, 0x00, sizeof(*pNewSession) );
 		
 		switch ( eSessionType )
 		{
@@ -17,7 +18,35 @@ CSession *create_session( C_SESSION_TYPE eSessionType, const CSessionParam *pSes
 		{
 			CSocket *pUDPSocket = NULL;
 			
-			pUDPSocket = net_socket(  );
+			pUDPSocket = net_socket( SOCKET_TYPE_DGRAM, 0 );
+			if ( pUDPSocket )
+			{
+				CNetAddr addr, stLocalAddr;
+				char tempBuf[1024] = { 0x00, };
+				int32_t iLen = 0;
+			
+				memset( &addr, 0x00, sizeof(addr) );
+				memset( &stLocalAddr, 0x00, sizeof(stLocalAddr) );
+				
+				memcpy( addr.pIP, pSessionParam->pIP, strlen(pSessionParam->pIP) );
+				addr.iPort = pSessionParam->iPort;
+			
+				memcpy( stLocalAddr.pIP, pLocalIP, strlen(pSessionParam->pLocalIP) );
+				stLocalAddr.iPort = pSessionParam->iLocalPort;
+
+				if ( net_bind( pUDPSocket, &stLocalAddr ) >= 0 )
+				{
+					if ( net_connect( pUDPSocket, &addr ) >= 0 )
+					{
+						if ( net_set_socket( pUDPSocket, SOCKET_OPTION_NONE_BLOCK, NULL, 0 ) >= 0 )
+						{
+							pNewSession->pSocket = pUDPSocket;
+							
+							pRetCode = pNewSession;
+						}
+					}
+				}
+			}
 		}break ; 
 		case SESSION_TYPE_STREAM_CLIENT:
 		{
@@ -43,6 +72,12 @@ CSession *create_session( C_SESSION_TYPE eSessionType, const CSessionParam *pSes
 		{
 			
 		}break ;	
+		}
+		
+		if ( NULL == pRetCode )
+		{
+			mem_free( pNewSession );
+			pNewSession = NULL;
 		}
 	}
 	

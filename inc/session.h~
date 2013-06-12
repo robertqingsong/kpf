@@ -17,7 +17,7 @@ typedef enum CSessionType_t
 	SESSION_TYPE_DGRAM_SERVER, 
 	SESSION_TYPE_STREAM_SERVER, 
 	
-	SESSION_TYPE_HTTP, 
+	SESSION_TYPE_HTTP_CLIENT, 
 }C_SESSION_TYPE;
 
 typedef enum CSessionEvent_t

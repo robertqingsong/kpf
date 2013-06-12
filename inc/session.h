@@ -36,7 +36,8 @@ typedef struct CSessionParam_t
 	int8_t pIP[32];
 	int16u_t iPort;
 
-	
+	int8_t pLocalIP[32];
+	int16u_t iLocalPort;
 }CSessionParam;
 
 typedef int32_t (*session_business_t)( const struct CSession_t *pThis, 
