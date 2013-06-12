@@ -587,49 +587,54 @@ int32_t net_sendto( const CSocket *pSocket, const int8u_t *pData, const int32_t 
 {
 	int32_t iRetCode = -100;
 	
-	if ( pSocket && pData && iDataLen > 0 && pPeerAddr )
+	
+	if ( pSocket && pData && iDataLen > 0 )
 	{
 #if (__OS_LINUX__)
 		struct sockaddr_in addr;
-		int32_t iOkFlag = 0;
+		int32_t iHasAddr = 0;
 		
-      //     configure ip & port for listen
-      memset( &addr, 0x00, sizeof( addr ) );
-      addr.sin_family = PF_INET;
-      addr.sin_port = htons( pPeerAddr->iPort );
-      if ( pPeerAddr->pIP[0] >= '0' && pPeerAddr->pIP[0] <= '9' )
-      {
-      	addr.sin_addr.s_addr = net_ip2n( pPeerAddr->pIP );
-      	
-      	iOkFlag = 1;
-      }
-      else 
-      {
-      	int8_t pIP[32] = { 0x00, };
-      	
-      	if ( net_get_domain_ip( pPeerAddr->pIP, pIP, sizeof(pIP) ) >= 0 )
-      	{
-      		addr.sin_addr.s_addr = net_ip2n( pIP );
-      			
-      		
-      		iOkFlag = 1;
-      	}
-      }
-		
-		if ( iOkFlag )
+		if ( pPeerAddr )
 		{
-			iRetCode = sendto( pSocket->iSocketId, pData, iDataLen, 0, &addr, sizeof(addr) );
-		
-			if ( iRetCode < 0 )
-			{
-				if ( EAGAIN != errno )
-				{
-					log_print( "%s %s:%d !if ( EAGAIN != errno ) failed????????????????", __FILE__, __FUNCTION__, __LINE__ );
-				
-					iRetCode = SOCKET_ERROR;	
-				}
-			}	
+      	//     configure ip & port for listen
+      	memset( &addr, 0x00, sizeof( addr ) );
+     		addr.sin_family = PF_INET;
+     		addr.sin_port = htons( pPeerAddr->iPort );
+     	 	if ( pPeerAddr->pIP[0] >= '0' && pPeerAddr->pIP[0] <= '9' )
+    	  	{
+      		addr.sin_addr.s_addr = net_ip2n( pPeerAddr->pIP );
+      		
+      		iHasAddr = 1;
+      	
+     	 	}
+      	else 
+      	{
+      		int8_t pIP[32] = { 0x00, };
+      	
+      		if ( net_get_domain_ip( pPeerAddr->pIP, pIP, sizeof(pIP) ) >= 0 )
+      		{
+      			addr.sin_addr.s_addr = net_ip2n( pIP );
+      			
+      			iHasAddr = 1;
+      		
+      		}
+    	  }
 		}
+		
+		if ( iHasAddr )
+			iRetCode = sendto( pSocket->iSocketId, pData, iDataLen, 0, &addr, sizeof(addr) );
+		else  
+			iRetCode = sendto( pSocket->iSocketId, pData, iDataLen, 0, NULL, 0 );
+		
+		if ( iRetCode < 0 )
+		{
+			if ( EAGAIN != errno )
+			{
+				log_print( "%s %s:%d !if ( EAGAIN != errno ) failed????????????????", __FILE__, __FUNCTION__, __LINE__ );
+				
+				iRetCode = SOCKET_ERROR;	
+			}
+		}	
 
 #endif	
 	}
@@ -883,6 +888,8 @@ int32_t remove_reactor_socket( CReactor *pReactor, CSocket *pSocket )
 	{
 		CRemoveSocket *pRemoveSocket = NULL;
 		
+		lock( &( pReactor->Locker ) );
+		
 		pRemoveSocket = mem_malloc( sizeof( *pRemoveSocket ) );
 		if ( pRemoveSocket )
 		{
@@ -900,6 +907,8 @@ int32_t remove_reactor_socket( CReactor *pReactor, CSocket *pSocket )
 				pRemoveSocket = NULL;		
 			}
 		}
+		
+		unlock( &( pReactor->Locker ) );
 	}
 	else 
 		log_print( "%s %s:%d !if ( iReactorId && iSocketId ) failed????????????????", __FILE__, __FUNCTION__, __LINE__ );

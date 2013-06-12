@@ -6,6 +6,8 @@
 
 #include "../inc/dgram_session.h"
 
+#include "../inc/pine.h"
+
 typedef struct CSessionManager_t
 {
 	int32_t iInitFlag;
@@ -85,6 +87,8 @@ static int32_t common_session_reactor_callback( const struct CReactor_t *pReacto
 		if ( pSession->handle_input )
 			iRetCode = pSession->handle_input( pSession, pSocket );
 	}
+	else 
+		log_print( "!if ( pSession ) failed?????????????????????" );
 	
 	return iRetCode;	
 }
@@ -96,13 +100,18 @@ int32_t init_session( void )
 	
 	if( !( fg_SessionManager.iInitFlag ) )
 	{
-		if ( init_mutex( &( fg_SessionManager.Locker ) ) >= 0 )
+		if ( init_pine_system(  ) >= 0 )
 		{
-			lock( &( fg_SessionManager.Locker ) );
+			if ( init_mutex( &( fg_SessionManager.Locker ) ) >= 0 )
+			{
+				lock( &( fg_SessionManager.Locker ) );
 			
-			fg_SessionManager.iInitFlag = 1;
+				fg_SessionManager.iInitFlag = 1;
+				
+				iRetCode = 0;
 			
-			unlock( &( fg_SessionManager.Locker ) );
+				unlock( &( fg_SessionManager.Locker ) );
+			}
 		}
 	}
 	else 
@@ -129,6 +138,8 @@ void release_session( void )
 			}
 		}
 		
+		release_pine_system(  );		
+		
 		fg_SessionManager.iInitFlag = 0;
 		
 		unlock( &( fg_SessionManager.Locker ) );
@@ -148,42 +159,16 @@ CSession *create_session( C_SESSION_TYPE eSessionType, const CSessionParam *pSes
 		case SESSION_TYPE_DGRAM_CLIENT:
 		{
 			CSocket *pUDPSocket = NULL;
+			CReactor *pDGRamReactor = get_session_reactor( eSessionType );
 			
-			pUDPSocket = net_socket( SOCKET_TYPE_DGRAM, 0 );
-			if ( pUDPSocket )
+			if ( pDGRamReactor )
 			{
-				CNetAddr addr, stLocalAddr;
-				char tempBuf[1024] = { 0x00, };
-				int32_t iLen = 0;
-				CReactor *pDGRamReactor = get_session_reactor( eSessionType );
-			
-				if ( pDGRamReactor )
-				{
-					memset( &addr, 0x00, sizeof(addr) );
-					memset( &stLocalAddr, 0x00, sizeof(stLocalAddr) );
+				pNewSession->pOwnerReactor = pDGRamReactor;
 				
-					memcpy( addr.pIP, pSessionParam->pIP, strlen(pSessionParam->pIP) );
-					addr.iPort = pSessionParam->iPort;
-			
-					memcpy( stLocalAddr.pIP, pSessionParam->pLocalIP, strlen(pSessionParam->pLocalIP) );
-					stLocalAddr.iPort = pSessionParam->iLocalPort;
-
-					if ( net_bind( pUDPSocket, &stLocalAddr ) >= 0 )
-					{
-						if ( net_connect( pUDPSocket, &addr ) >= 0 )
-						{
-							if ( add_reactor_socket( pDGRamReactor, pUDPSocket, pNewSession ) >= 0 )
-							{
-								if ( net_set_socket( pUDPSocket, SOCKET_OPTION_NONE_BLOCK, NULL, 0 ) >= 0 )
-								{
-									pNewSession->pSocket = pUDPSocket;
-									pNewSession->pOwnerReactor = pDGRamReactor;
-							
-									pRetCode = pNewSession;
-								}	
-							}
-						}
-					}
+				if ( pNewSession->init )
+				{
+					if ( pNewSession->init( pNewSession, pSessionParam ) >= 0 )
+						pRetCode = pNewSession;	
 				}
 			}
 		}break ; 
@@ -228,12 +213,8 @@ void destroy_session( CSession *pThis )
 {
 	if ( pThis )
 	{
-		if ( remove_reactor_socket( pThis->pOwnerReactor, pThis->pSocket ) >= 0 )
-		{
-			pThis->pSocket = NULL;		
-		}
-		else 
-			log_print( "!if ( remove_reactor_socket failed??????????????????????????" );
+		if ( pThis->release )
+			pThis->release( pThis );
 			
 		mem_free( pThis );
 		pThis = NULL;
