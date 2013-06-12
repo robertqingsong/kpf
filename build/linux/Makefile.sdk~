@@ -31,5 +31,5 @@ demo:
 clean:
 	$(RM) -rf $(OBJECTS)
 	$(RM) -rf $(TARGET)
-	$(RM) -rf demo tcp_server udp_server udp_client
+	$(RM) -rf demo tcp_server udp_server udp_client multicast_listener multicast_sender
 

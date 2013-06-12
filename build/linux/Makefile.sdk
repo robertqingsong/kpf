@@ -11,7 +11,7 @@ OBJECTS=../../src/block.o ../../src/bsearch.o ../../src/future.o ../../src/list.
 	../../src/btree.o ../../src/mem_api.o ../../src/select.o ../../src/task.o \
 	../../src/kqueue.o ../../src/lock.o ../../src/net_api.o ../../src/sem.o \
 	../../src/log.o ../../src/oal_api.o ../../src/smart.o ../../src/queue.o \
-	../../src/pine.o ../../src/avl.o ../../src/hash.o ../../src/timer.o ../../src/epoll.o
+	../../src/pine.o ../../src/avl.o ../../src/hash.o ../../src/timer.o ../../src/epoll.o ../../src/session.o
 
 all:$(OBJECTS)
 	$(AR) rc  $(TARGET) $(OBJECTS)

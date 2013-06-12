@@ -18,6 +18,8 @@ typedef enum CSessionType_t
 	SESSION_TYPE_STREAM_SERVER, 
 	
 	SESSION_TYPE_HTTP_CLIENT, 
+	
+	SESSION_TYPE_END
 }C_SESSION_TYPE;
 
 typedef enum CSessionEvent_t
@@ -62,7 +64,6 @@ typedef struct CSession_t
 
 	//output data.
 	int32_t (*handle_output)( const struct CSession_t *pThis, 
-				  const CSocket *pSocket, 
 				  const int8u_t *pOutDatabuf, 
 				  const int32_t iOutDataLen );
 
@@ -82,6 +83,12 @@ typedef struct CSession_t
 	CSocket *pSocket;
 }CSession;
 
+//init session.
+int32_t init_session( void );
+
+//release session.
+void release_session( void );
+
 //create session.
 CSession *create_session( C_SESSION_TYPE eSessionType, const CSessionParam *pSessionParam );
 
@@ -94,8 +101,8 @@ int32_t set_session_business( CSession *pThis, session_business_t business );
 //set session event.
 int32_t set_session_event( CSession *pThis, session_event_t event );
 
-//set session reactor.
-int32_t set_session_reactor( CSession *pThis, const CReactor *pReactor );
+//send data.
+int32_t send_session_data( const CSession *pThis, const int8u_t *pData, const int32_t iDataLen );
 
 #if defined(__cplusplus)
 }

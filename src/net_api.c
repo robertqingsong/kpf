@@ -883,6 +883,8 @@ int32_t remove_reactor_socket( CReactor *pReactor, CSocket *pSocket )
 	{
 		CRemoveSocket *pRemoveSocket = NULL;
 		
+		lock( &( pReactor->Locker ) );
+		
 		pRemoveSocket = mem_malloc( sizeof( *pRemoveSocket ) );
 		if ( pRemoveSocket )
 		{
@@ -900,6 +902,8 @@ int32_t remove_reactor_socket( CReactor *pReactor, CSocket *pSocket )
 				pRemoveSocket = NULL;		
 			}
 		}
+		
+		unlock( &( pReactor->Locker ) );
 	}
 	else 
 		log_print( "%s %s:%d !if ( iReactorId && iSocketId ) failed????????????????", __FILE__, __FUNCTION__, __LINE__ );
