@@ -9,6 +9,8 @@
 #include "../inc/stream_session.h"
 #include "../inc/dgram_service_session.h"
 
+#include "../inc/stream_service_session.h"
+
 #include "../inc/pine.h"
 
 typedef struct CSessionManager_t
@@ -74,8 +76,12 @@ static CSession *get_session( C_SESSION_TYPE eSessionType )
 	{
 		pRetCode = get_dgram_service_session(  );
 	}break ;
-	case SESSION_TYPE_MULTICAST_LISTENER:
 	case SESSION_TYPE_STREAM_SERVER:
+	{
+		pRetCode = get_stream_service_session(  );
+	}break ;
+	case SESSION_TYPE_MULTICAST_LISTENER:
+	
 	case SESSION_TYPE_HTTP_CLIENT:
 	{
 		
@@ -96,13 +102,19 @@ static int32_t common_session_reactor_callback( const struct CReactor_t *pReacto
 	CSession *pSession = NULL;
 	
 	if ( !pReactor || !pSocket )
+	{
+		log_print( "pReactor-->%u, pSocket-->%u", pReactor, pSocket );
+		
 		return iRetCode;
+	}
 		
 	pSession = (CSession *)pSocket->pUserData;
 	if ( pSession )
 	{
 		if ( pSession->handle_input )
 			iRetCode = pSession->handle_input( pSession, pSocket );
+		else 
+			log_print( "common session handle_input is NULL." );
 	}
 	else 
 		log_print( "!if ( pSession ) failed?????????????????????" );
@@ -262,6 +274,31 @@ int32_t send_session_data( const CSession *pThis, const int8u_t *pData, const in
 		if ( pThis->handle_output )
 			iRetCode = pThis->handle_output( pThis, pData, iDataLen, pNetAddr );	
 	}
+	
+	return iRetCode;	
+}
+
+//add session socket.
+int32_t add_session_socket( CSession *pThis, CSocket *pSocket )
+{
+	int32_t iRetCode = -1;
+	
+	if ( pThis && pSocket )
+	{
+		pSocket->pUserData = pThis;
+		iRetCode = add_reactor_socket( pThis->pOwnerReactor, pSocket, pThis );
+	}
+	
+	return iRetCode;	
+}
+
+//remove session socket.
+int32_t remove_session_socket( CSession *pThis, const CSocket *pSocket )
+{
+	int32_t iRetCode = -1;
+	
+	if ( pThis && pSocket )
+		iRetCode = remove_reactor_socket( pThis->pOwnerReactor, pSocket );
 	
 	return iRetCode;	
 }

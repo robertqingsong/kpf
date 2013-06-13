@@ -725,12 +725,18 @@ int32_t common_engine_callback( const int32_t iSocketId, void *pUserData )
 	int32_t iOkFlag = 1;
 			
 	if ( iSocketId < 0 || !pUserData )
+	{
+		log_print( "iSocketId-->%d, pUserData-->%u", iSocketId, pUserData );
 		return iRetCode;
+	}
 		
 	pSocket = ((CSocket *)pUserData);
 	pOwnerReactor = pSocket->pOwnerReactor;
 	if ( !pOwnerReactor )
+	{
+		log_print( "pOwnerReactor is NULL?????????????????????????????????" );
 		return iRetCode;
+	}
 		
 	lock( &( pOwnerReactor->Locker ) );
 		
@@ -761,6 +767,8 @@ int32_t common_engine_callback( const int32_t iSocketId, void *pUserData )
 			if ( pOwnerReactor->fReactorCallback( pOwnerReactor, pSocket, pOwnerReactor->pUserData ) >= 0 )
 				iRetCode = 0;	
 		}
+		else 
+			log_print( "reactor callback is NULL??????????????????????????" );
 	}
 	
 	unlock( &( pOwnerReactor->Locker ) );

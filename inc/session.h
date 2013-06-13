@@ -25,12 +25,17 @@ typedef enum CSessionType_t
 typedef enum CSessionEvent_t
 {
 	EVENT_READ_ERROR, 
-	EVENT_WRITE_ERROR
+	EVENT_WRITE_ERROR, 
+	EVENT_ACCEPT_ERROR, 
+	EVENT_ACCEPT_NEW_STREAM_CLIENT_NOTIFY
 }C_SESSION_EVENT;
 
 typedef struct CEventParam_t
 {
-	int i;
+	CSocket *pSocket;
+	
+	CNetAddr stNetAddr;
+	
 }CEventParam;
 
 typedef struct CSessionParam_t
@@ -110,6 +115,12 @@ int32_t set_session_event( CSession *pThis, session_event_t event );
 
 //send data.
 int32_t send_session_data( const CSession *pThis, const int8u_t *pData, const int32_t iDataLen, const CNetAddr *pNetAddr );
+
+//add session socket.
+int32_t add_session_socket( CSession *pThis, CSocket *pSocket );
+
+//remove session socket.
+int32_t remove_session_socket( CSession *pThis, const CSocket *pSocket );
 
 #if defined(__cplusplus)
 }

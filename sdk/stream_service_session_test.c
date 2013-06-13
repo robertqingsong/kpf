@@ -15,16 +15,21 @@ int32_t stream_session_business( const struct CSession_t *pThis,
 {
 	int32_t iRetCode = -1;
 
-	log_print( "stream_session_business:------------------------>" );	
+	log_print( "stream_service_session_business:------------------------>" );	
 	
 	if ( pInData )
 	{
+		int8_t pRespBuf[1024] = { 0x00, };
+		
 		log_print( pInData );
+		
+		sprintf( pRespBuf, "hi, %s", pInData );
+		net_send( pSocket, pRespBuf, strlen(pRespBuf) + 1 );
 		
 		iRetCode = 0;
 	}
 	
-	log_print( "stream_session_business<------------------------end" );	
+	log_print( "stream_service_session_business<------------------------end" );	
 	
 	return iRetCode;	
 }
@@ -36,9 +41,32 @@ int32_t stream_session_event( const struct CSession_t *pThis,
 {
 	int32_t iRetCode = -1;
 	
-	log_print( "stream_session_event:------------------------>" );
+	log_print( "stream_servie_session_event:------------------------>" );
 	
-	log_print( "stream_session_event<------------------------end" );	
+	if ( !pEventParam )
+		return iRetCode;
+	
+	if ( EVENT_ACCEPT_NEW_STREAM_CLIENT_NOTIFY == eEvent )
+	{
+		if ( net_set_socket( pEventParam->pSocket, SOCKET_OPTION_NONE_BLOCK, NULL, 0 ) >= 0 )
+		{
+				
+			log_print( "accept_task: start to add reactor socket................" );
+			if ( add_session_socket( pThis, pEventParam->pSocket ) >= 0 )
+			{
+				log_print( "client:%s:%d", pEventParam->stNetAddr.pIP, pEventParam->stNetAddr.iPort );
+				iRetCode = net_send( pEventParam->pSocket, "welcome\r\n", 9 );
+				if ( iRetCode > 0 )
+					log_print( "accept_task: have send %d bytes.", iRetCode );		
+			}	
+			else 
+				log_print( "accept_task: add reactor socket failed??????????????????????" );		
+		}
+		else 
+			log_print( "accept_task: set none blocking socket failed????????????????????????" );	
+	}	
+	
+	log_print( "stream_service_session_event<------------------------end" );	
 	
 	return iRetCode;	
 }
@@ -63,7 +91,7 @@ int main( int argc, char **argv )
 	stSessionParam.iPort = iPeerPort;
 	
 	log_print( "start to create session............" );
-	pSession = create_session( SESSION_TYPE_STREAM_CLIENT, &stSessionParam );
+	pSession = create_session( SESSION_TYPE_STREAM_SERVER, &stSessionParam );
 	
 	if ( pSession )
 	{
@@ -72,18 +100,7 @@ int main( int argc, char **argv )
 		{
 			if ( set_session_event( pSession, stream_session_event ) >= 0 )
 			{
-				int8_t pWords[1024] = { 0x00, }, pSendBuf[1024 * 2] = { 0x00, };
-				
-				while ( fgets( pWords, 1024, stdin ) )
-				{
-					int32_t iNSent = -1;
-					
-					sprintf( pSendBuf, "%s\r\n\r\n", pWords );
-					
-					iNSent = send_session_data( pSession, pSendBuf, strlen(pSendBuf) + 1, NULL );
-					
-					log_print( "have send %d bytes", iNSent );
-				}
+				log_print( "stream server is running..............." );
 			}
 		}
 	}
