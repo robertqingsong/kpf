@@ -29,6 +29,8 @@ demo:
 	$(CC) ../../sdk/multicast_listener.c $(LDFLAGS) $(INCLUDE_DIR) -o multicast_listener -L./ -lkpf -lpthread
 	$(CC) ../../sdk/multicast_sender.c $(LDFLAGS) $(INCLUDE_DIR) -o multicast_sender -L./ -lkpf -lpthread
 	$(CC) ../../sdk/dgram_session_test.c $(LDFLAGS) $(INCLUDE_DIR) -o dgram_session_test -L./ -lkpf -lpthread
+	$(CC) ../../sdk/stream_session_test.c $(LDFLAGS) $(INCLUDE_DIR) -o stream_session_test -L./ -lkpf -lpthread
+	$(CC) ../../sdk/dgram_service_session_test.c $(LDFLAGS) $(INCLUDE_DIR) -o dgram_service_session_test -L./ -lkpf -lpthread
 
 clean:
 	$(RM) -rf $(OBJECTS)

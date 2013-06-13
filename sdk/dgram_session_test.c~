@@ -47,8 +47,8 @@ int main( int argc, char **argv )
 	CSessionParam stUDPSessionParam;
 	const int8_t *pLocalIP = "192.168.1.100";
 	const int8_t *pPeerIP = "192.168.1.100";
-	const int16u_t iLocalPort = 9002;
-	const int16u_t iPeerPort = 9001;
+	const int16u_t iLocalPort = 9001;
+	const int16u_t iPeerPort = 9002;
 	
 	enable_log( 1 );
 	set_log( LOG_TYPE_CONSOLE, NULL, 0 );
@@ -78,7 +78,7 @@ int main( int argc, char **argv )
 				
 				while ( fgets( pWords, 1024, stdin ) )
 				{
-					int32_t iNSent = send_session_data( pUDPSession, pWords, strlen(pWords) + 1 );
+					int32_t iNSent = send_session_data( pUDPSession, pWords, strlen(pWords) + 1, NULL );
 					log_print( "have send %d bytes", iNSent );
 				}
 			}

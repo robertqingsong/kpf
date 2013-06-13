@@ -77,7 +77,7 @@ static int32_t handle_input( const struct CSession_t *pThis,
 		{
 			if ( pThis->handle_business )
 			{
-				pThis->handle_business( pThis, pRecvBuf, iRetCode );	
+				pThis->handle_business( pThis, pSocket, pRecvBuf, iRetCode, NULL );	
 			}
 		}
 		else 
@@ -98,7 +98,8 @@ static int32_t handle_input( const struct CSession_t *pThis,
 //output data.
 static int32_t handle_output( const struct CSession_t *pThis, 
 				  const int8u_t *pOutDatabuf, 
-				  const int32_t iOutDataLen )
+				  const int32_t iOutDataLen, 
+				  const CNetAddr *pNetAddr )
 {
 	int32_t iRetCode = -1;
 	

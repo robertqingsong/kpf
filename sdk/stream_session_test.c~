@@ -78,7 +78,7 @@ int main( int argc, char **argv )
 					
 					sprintf( pSendBuf, "%s\r\n\r\n", pWords );
 					
-					iNSent = send_session_data( pSession, pSendBuf, strlen(pSendBuf) + 1 );
+					iNSent = send_session_data( pSession, pSendBuf, strlen(pSendBuf) + 1, NULL );
 					
 					log_print( "have send %d bytes", iNSent );
 				}

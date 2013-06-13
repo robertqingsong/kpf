@@ -43,8 +43,10 @@ typedef struct CSessionParam_t
 }CSessionParam;
 
 typedef int32_t (*session_business_t)( const struct CSession_t *pThis, 
+					 const CSocket *pSocket, 
 				    const int8u_t *pInData, 
-				    const int32_t iInDataLen );
+				    const int32_t iInDataLen, 
+				    const CNetAddr *pNetAddr );
 
 typedef int32_t (*session_event_t)( const struct CSession_t *pThis, 
 				 const C_SESSION_EVENT eEvent, 
@@ -65,12 +67,15 @@ typedef struct CSession_t
 	//output data.
 	int32_t (*handle_output)( const struct CSession_t *pThis, 
 				  const int8u_t *pOutDatabuf, 
-				  const int32_t iOutDataLen );
+				  const int32_t iOutDataLen, 
+				  const CNetAddr *pNetAddr );
 
 	//business.
 	int32_t (*handle_business)( const struct CSession_t *pThis, 
+					 const CSocket *pSocket, 
 				    const int8u_t *pInData, 
-				    const int32_t iInDataLen );
+				    const int32_t iInDataLen, 
+				    const CNetAddr *pNetAddr );
 
 	//event.
 	int32_t (*handle_event)( const struct CSession_t *pThis, 
@@ -81,6 +86,8 @@ typedef struct CSession_t
 	//session data define.
 	CReactor *pOwnerReactor;
 	CSocket *pSocket;
+	
+	CNetAddr stPeerAddr;
 }CSession;
 
 //init session.
@@ -102,7 +109,7 @@ int32_t set_session_business( CSession *pThis, session_business_t business );
 int32_t set_session_event( CSession *pThis, session_event_t event );
 
 //send data.
-int32_t send_session_data( const CSession *pThis, const int8u_t *pData, const int32_t iDataLen );
+int32_t send_session_data( const CSession *pThis, const int8u_t *pData, const int32_t iDataLen, const CNetAddr *pNetAddr );
 
 #if defined(__cplusplus)
 }

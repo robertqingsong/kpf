@@ -7,7 +7,7 @@
 
 #include "session.h"
 
-int32_t dgram_session_business( const struct CSession_t *pThis, 
+int32_t dgram_service_session_business( const struct CSession_t *pThis, 
 					 const CSocket *pSocket, 
 				    const int8u_t *pInData, 
 				    const int32_t iInDataLen, 
@@ -15,30 +15,36 @@ int32_t dgram_session_business( const struct CSession_t *pThis,
 {
 	int32_t iRetCode = -1;
 
-	log_print( "dgram_session_business:------------------------>" );	
+	log_print( "dgram_service session_business:------------------------>" );	
 	
 	if ( pInData )
 	{
+		char pRespBuf[1024] = { 0x00, };
+		
 		log_print( pInData );
+		
+		sprintf( pRespBuf, "%s:%d %s\r\n", pNetAddr->pIP, pNetAddr->iPort, pInData );
+
+		net_send( pSocket, pRespBuf, strlen(pRespBuf) + 1, pNetAddr );
 		
 		iRetCode = 0;
 	}
 	
-	log_print( "dgram_session_business<------------------------end" );	
+	log_print( "dgram_service session_business<------------------------end" );	
 	
 	return iRetCode;	
 }
 
-int32_t dgram_session_event( const struct CSession_t *pThis, 
+int32_t dgram_service_session_event( const struct CSession_t *pThis, 
 				 const C_SESSION_EVENT eEvent, 
 				 const CEventParam *pEventParam, 
 				 const int32_t iEventParamSize )
 {
 	int32_t iRetCode = -1;
 	
-	log_print( "dgram_session_event:------------------------>" );
+	log_print( "dgram_service session_event:------------------------>" );
 	
-	log_print( "dgram_session_event<------------------------end" );	
+	log_print( "dgram_service session_event<------------------------end" );	
 	
 	return iRetCode;	
 }
@@ -49,8 +55,8 @@ int main( int argc, char **argv )
 	CSessionParam stUDPSessionParam;
 	const int8_t *pLocalIP = "192.168.1.100";
 	const int8_t *pPeerIP = "192.168.1.100";
-	const int16u_t iLocalPort = 9001;
-	const int16u_t iPeerPort = 9002;
+	const int16u_t iLocalPort = 9002;
+	const int16u_t iPeerPort = 9001;
 	
 	enable_log( 1 );
 	set_log( LOG_TYPE_CONSOLE, NULL, 0 );
@@ -67,14 +73,14 @@ int main( int argc, char **argv )
 	stUDPSessionParam.iLocalPort = iLocalPort;
 	
 	log_print( "start to create session............" );
-	pUDPSession = create_session( SESSION_TYPE_DGRAM_CLIENT, &stUDPSessionParam );
+	pUDPSession = create_session( SESSION_TYPE_DGRAM_SERVER, &stUDPSessionParam );
 	
 	if ( pUDPSession )
 	{
 		log_print( "create udp session ok................" );
-		if ( set_session_business( pUDPSession, dgram_session_business ) >= 0 )
+		if ( set_session_business( pUDPSession, dgram_service_session_business ) >= 0 )
 		{
-			if ( set_session_event( pUDPSession, dgram_session_event ) >= 0 )
+			if ( set_session_event( pUDPSession, dgram_service_session_event ) >= 0 )
 			{
 				const int8_t pWords[1024] = { 0x00, };
 				

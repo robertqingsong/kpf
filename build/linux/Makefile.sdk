@@ -12,7 +12,7 @@ OBJECTS=../../src/block.o ../../src/bsearch.o ../../src/future.o ../../src/list.
 	../../src/kqueue.o ../../src/lock.o ../../src/net_api.o ../../src/sem.o \
 	../../src/log.o ../../src/oal_api.o ../../src/smart.o ../../src/queue.o \
 	../../src/pine.o ../../src/avl.o ../../src/hash.o ../../src/timer.o ../../src/epoll.o ../../src/session.o \
-	../../src/dgram_session.o ../../src/stream_session.o
+	../../src/dgram_session.o ../../src/stream_session.o ../../src/dgram_service_session.o
 
 all:$(OBJECTS)
 	$(AR) rc  $(TARGET) $(OBJECTS)
@@ -30,6 +30,7 @@ demo:
 	$(CC) ../../sdk/multicast_sender.c $(LDFLAGS) $(INCLUDE_DIR) -o multicast_sender -L./ -lkpf -lpthread
 	$(CC) ../../sdk/dgram_session_test.c $(LDFLAGS) $(INCLUDE_DIR) -o dgram_session_test -L./ -lkpf -lpthread
 	$(CC) ../../sdk/stream_session_test.c $(LDFLAGS) $(INCLUDE_DIR) -o stream_session_test -L./ -lkpf -lpthread
+	$(CC) ../../sdk/dgram_service_session_test.c $(LDFLAGS) $(INCLUDE_DIR) -o dgram_service_session_test -L./ -lkpf -lpthread
 
 clean:
 	$(RM) -rf $(OBJECTS)

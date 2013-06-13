@@ -8,8 +8,10 @@
 #include "session.h"
 
 int32_t stream_session_business( const struct CSession_t *pThis, 
+					 const CSocket *pSocket, 
 				    const int8u_t *pInData, 
-				    const int32_t iInDataLen )
+				    const int32_t iInDataLen, 
+				    const CNetAddr *pNetAddr )
 {
 	int32_t iRetCode = -1;
 
@@ -78,7 +80,7 @@ int main( int argc, char **argv )
 					
 					sprintf( pSendBuf, "%s\r\n\r\n", pWords );
 					
-					iNSent = send_session_data( pSession, pSendBuf, strlen(pSendBuf) + 1 );
+					iNSent = send_session_data( pSession, pSendBuf, strlen(pSendBuf) + 1, NULL );
 					
 					log_print( "have send %d bytes", iNSent );
 				}

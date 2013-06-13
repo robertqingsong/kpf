@@ -6,6 +6,9 @@
 
 #include "../inc/dgram_session.h"
 
+#include "../inc/stream_session.h"
+#include "../inc/dgram_service_session.h"
+
 #include "../inc/pine.h"
 
 typedef struct CSessionManager_t
@@ -67,8 +70,11 @@ static CSession *get_session( C_SESSION_TYPE eSessionType )
 	{
 		pRetCode = get_stream_session(  );
 	}break ;
-	case SESSION_TYPE_MULTICAST_LISTENER:
 	case SESSION_TYPE_DGRAM_SERVER:
+	{
+		pRetCode = get_dgram_service_session(  );
+	}break ;
+	case SESSION_TYPE_MULTICAST_LISTENER:
 	case SESSION_TYPE_STREAM_SERVER:
 	case SESSION_TYPE_HTTP_CLIENT:
 	{
@@ -247,14 +253,14 @@ int32_t set_session_event( CSession *pThis, session_event_t event )
 }
 
 //send data.
-int32_t send_session_data( const CSession *pThis, const int8u_t *pData, const int32_t iDataLen )
+int32_t send_session_data( const CSession *pThis, const int8u_t *pData, const int32_t iDataLen, const CNetAddr *pNetAddr )
 {
 	int32_t iRetCode = -1;
 
 	if ( pThis && pData && iDataLen > 0 )
 	{
 		if ( pThis->handle_output )
-			iRetCode = pThis->handle_output( pThis, pData, iDataLen );	
+			iRetCode = pThis->handle_output( pThis, pData, iDataLen, pNetAddr );	
 	}
 	
 	return iRetCode;	

@@ -1,47 +1,39 @@
-#include "../inc/stream_session.h"
+#include "../inc/dgram_service_session.h"
 
-
-	//init.
+//init.
 static int32_t init( struct CSession_t *pThis, const CSessionParam *pSessionParam )
 {
 	int32_t iRetCode = -1;
 	
-	CSocket *pTCPSocket = NULL;
-
+	CSocket *pUDPSocket = NULL;
 	
 	if ( !pThis || !pSessionParam )
 		return iRetCode;
 	
-	pTCPSocket = net_socket( SOCKET_TYPE_STREAM, 0 );
-	if ( pTCPSocket )
+	pUDPSocket = net_socket( SOCKET_TYPE_DGRAM, 0 );
+	if ( pUDPSocket )
 	{
-		CNetAddr addr;
+		CNetAddr stLocalAddr;
 		char tempBuf[1024] = { 0x00, };
 		int32_t iLen = 0;
 				
-		memset( &addr, 0x00, sizeof(addr) );
-				
-		memcpy( addr.pIP, pSessionParam->pIP, strlen(pSessionParam->pIP) );
-		addr.iPort = pSessionParam->iPort;
-	
-		if ( net_connect( pTCPSocket, &addr ) >= 0 )
+		memset( &stLocalAddr, 0x00, sizeof(stLocalAddr) );
+			
+		memcpy( stLocalAddr.pIP, pSessionParam->pLocalIP, strlen(pSessionParam->pLocalIP) );
+		stLocalAddr.iPort = pSessionParam->iLocalPort;
+
+		if ( net_bind( pUDPSocket, &stLocalAddr ) >= 0 )
 		{
-			if ( add_reactor_socket( pThis->pOwnerReactor, pTCPSocket, pThis ) >= 0 )
+			if ( add_reactor_socket( pThis->pOwnerReactor, pUDPSocket, pThis ) >= 0 )
 			{
-				if ( net_set_socket( pTCPSocket, SOCKET_OPTION_NONE_BLOCK, NULL, 0 ) >= 0 )
+				if ( net_set_socket( pUDPSocket, SOCKET_OPTION_NONE_BLOCK, NULL, 0 ) >= 0 )
 				{
-					pThis->pSocket = pTCPSocket;
+					pThis->pSocket = pUDPSocket;
 							
 					iRetCode = 0;
 				}	
-				else 
-					log_print( "set none blocking socket failed???????????????" );
 			}
-			else 
-				log_print( "add reactor socket failed???????????????????" );
 		}
-		else 
-			log_print( "connect failed????????????????" );
 	}
 	
 	return iRetCode;
@@ -64,20 +56,18 @@ static int32_t handle_input( const struct CSession_t *pThis,
 {
 	int32_t iRetCode = -1;
 	
-	log_print( "handle_input:----------------->" );
-	
 	if ( pThis && pSocket )
 	{
 		int8u_t pRecvBuf[1024] = { 0x00, };
 		CNetAddr stPeerAddr;
 		
-		iRetCode = net_recv( pSocket, pRecvBuf, sizeof(pRecvBuf) );
+		iRetCode = net_recvfrom( pSocket, pRecvBuf, sizeof(pRecvBuf), &stPeerAddr );
 		
 		if ( iRetCode > 0 )
 		{
 			if ( pThis->handle_business )
 			{
-				pThis->handle_business( pThis, pRecvBuf, iRetCode, NULL );	
+				pThis->handle_business( pThis, pSocket, pRecvBuf, iRetCode, &stPeerAddr );
 			}
 		}
 		else 
@@ -105,14 +95,14 @@ static int32_t handle_output( const struct CSession_t *pThis,
 	
 	if ( pThis && pOutDatabuf && iOutDataLen > 0 )
 	{
-		iRetCode = net_send( pThis->pSocket, pOutDatabuf, iOutDataLen );
+		iRetCode = net_sendto( pThis->pSocket, pOutDatabuf, iOutDataLen, NULL );
 	}
 	
 	return iRetCode;
 }
 
 
-CSession *get_stream_session( void )
+CSession *get_dgram_service_session( void )
 {
 	CSession *pRetCode = NULL;
 
