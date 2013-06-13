@@ -79,9 +79,12 @@ static int32_t handle_input( const struct CSession_t *pThis,
 		}
 		else 
 		{
-			if ( pThis->handle_event )
+			if ( SOCKET_ERROR == iRetCode )
 			{
-				pThis->handle_event( pThis, EVENT_READ_ERROR, NULL, 0 );
+				if ( pThis->handle_event )
+				{
+					pThis->handle_event( pThis, EVENT_READ_ERROR, NULL, 0 );
+				}
 			}
 		}
 	}

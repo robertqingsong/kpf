@@ -63,6 +63,17 @@ static CSession *get_session( C_SESSION_TYPE eSessionType )
 	{
 		pRetCode = get_dgram_session(  );
 	}break ;
+	case SESSION_TYPE_STREAM_CLIENT:
+	{
+		pRetCode = get_stream_session(  );
+	}break ;
+	case SESSION_TYPE_MULTICAST_LISTENER:
+	case SESSION_TYPE_DGRAM_SERVER:
+	case SESSION_TYPE_STREAM_SERVER:
+	case SESSION_TYPE_HTTP_CLIENT:
+	{
+		
+	}break ;
 	default:
 	{
 		
@@ -157,13 +168,17 @@ CSession *create_session( C_SESSION_TYPE eSessionType, const CSessionParam *pSes
 		switch ( eSessionType )
 		{
 		case SESSION_TYPE_DGRAM_CLIENT:
+		case SESSION_TYPE_STREAM_CLIENT:
+		case SESSION_TYPE_MULTICAST_LISTENER:
+		case SESSION_TYPE_DGRAM_SERVER:
+		case SESSION_TYPE_STREAM_SERVER:
+		case SESSION_TYPE_HTTP_CLIENT:
 		{
-			CSocket *pUDPSocket = NULL;
-			CReactor *pDGRamReactor = get_session_reactor( eSessionType );
+			CReactor *pReactor = get_session_reactor( eSessionType );
 			
-			if ( pDGRamReactor )
+			if ( pReactor )
 			{
-				pNewSession->pOwnerReactor = pDGRamReactor;
+				pNewSession->pOwnerReactor = pReactor;
 				
 				if ( pNewSession->init )
 				{
@@ -171,26 +186,6 @@ CSession *create_session( C_SESSION_TYPE eSessionType, const CSessionParam *pSes
 						pRetCode = pNewSession;	
 				}
 			}
-		}break ; 
-		case SESSION_TYPE_STREAM_CLIENT:
-		{
-			
-		}break ;
-		case SESSION_TYPE_MULTICAST_LISTENER:
-		{
-			
-		}break ;
-		case SESSION_TYPE_DGRAM_SERVER:
-		{
-			
-		}break ;
-		case SESSION_TYPE_STREAM_SERVER:
-		{
-			
-		}break ;
-		case SESSION_TYPE_HTTP_CLIENT:
-		{
-			
 		}break ;
 		default:
 		{
