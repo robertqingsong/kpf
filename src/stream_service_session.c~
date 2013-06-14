@@ -89,6 +89,7 @@ static int32_t handle_input( const struct CSession_t *pThis,
 				
 					memset( &stEventParam, 0x00, sizeof(stEventParam) );
 					stEventParam.pSocket = pNewSocket;
+					stEventParam.stNetAddr = stClientAddr;
 					iRetCode = pThis->handle_event( pThis, EVENT_ACCEPT_NEW_STREAM_CLIENT_NOTIFY, &stEventParam, sizeof(stEventParam) );
 				}
 			}

@@ -10,7 +10,7 @@
 
 #include "../inc/log.h"
 
-#include "../inc/queue.h"
+
 
 #if (__OS_LINUX__)
 
@@ -625,7 +625,7 @@ int32_t net_sendto( const CSocket *pSocket, const int8u_t *pData, const int32_t 
 			iRetCode = sendto( pSocket->iSocketId, pData, iDataLen, 0, &addr, sizeof(addr) );
 		else  
 			iRetCode = sendto( pSocket->iSocketId, pData, iDataLen, 0, NULL, 0 );
-		
+
 		if ( iRetCode < 0 )
 		{
 			if ( EAGAIN != errno )
@@ -695,17 +695,11 @@ typedef struct CRemoveSocket_t
 	CQueueNode QNode;
 }CRemoveSocket;
 
-static CQueue fg_SocketRemoveQ;
-
 int32_t init_reactor( void )
 {
 	int32_t iRetCode = -1;
 	
-	if ( init_queue( &( fg_SocketRemoveQ ) ) >= 0 )
-	{
-		if ( set_queue_water_level( &( fg_SocketRemoveQ ), 1024 * 1024 * 1000 ) >= 0 )
-			iRetCode = 0;	
-	}
+	iRetCode = 0;	
 	
 	return iRetCode;	
 }
@@ -715,14 +709,13 @@ void release_reactor( void )
 	
 }
 
-int32_t common_engine_callback( const int32_t iSocketId, void *pUserData )
+int32_t common_engine_callback( const int32_t iSocketId, void *pUserData, int32_t iEndFlag )
 {
 	int32_t iRetCode = -1;
 	CSocket *pSocket = NULL;
 	CReactor *pOwnerReactor = NULL;
 	CRemoveSocket *pRemoveSocket = NULL;
 	CQueueNode *pQNode = NULL;
-	int32_t iOkFlag = 1;
 			
 	if ( iSocketId < 0 || !pUserData )
 	{
@@ -739,34 +732,33 @@ int32_t common_engine_callback( const int32_t iSocketId, void *pUserData )
 	}
 		
 	lock( &( pOwnerReactor->Locker ) );
-		
-	while ( (pQNode = de_queue( &( fg_SocketRemoveQ ) ) ) )
-	{
-		pRemoveSocket = CONTAINER_OF_QUEUE( pQNode, CRemoveSocket );
-		
-		if ( pSocket == pRemoveSocket->pSocket )
-			iOkFlag = 0;
-			
-		if ( remove_engine_socket( pRemoveSocket->pReactor->pEngine, pRemoveSocket->pSocket->iSocketId ) >= 0 )
-		{
-			net_close_socket( pRemoveSocket->pSocket );
-			pRemoveSocket->pSocket = 0;
-			
-		}
-		else 
-			log_print( "%s %s:%d !if ( remove_engine_socket( pRe failed????????????????", __FILE__, __FUNCTION__, __LINE__ );
-			
-		mem_free( pRemoveSocket );
-		pRemoveSocket = NULL;
-	}
 	
-	if ( iOkFlag )
+	if ( pOwnerReactor->fReactorCallback )
 	{
-		if ( pOwnerReactor->fReactorCallback )
-		{
-			if ( pOwnerReactor->fReactorCallback( pOwnerReactor, pSocket, pOwnerReactor->pUserData ) >= 0 )
+		if ( pOwnerReactor->fReactorCallback( pOwnerReactor, pSocket, pOwnerReactor->pUserData ) >= 0 )
 				iRetCode = 0;	
-		}
+	}
+	else 
+		log_print( "reactor callback is NULL??????????????????????????" );
+	
+	if ( iEndFlag )
+	{
+		while ( (pQNode = de_queue( &( pOwnerReactor->stSocketRemoveQ ) ) ) )
+		{
+			pRemoveSocket = CONTAINER_OF_QUEUE( pQNode, CRemoveSocket );
+			
+			if ( remove_engine_socket( pRemoveSocket->pReactor->pEngine, pRemoveSocket->pSocket->iSocketId ) >= 0 )
+			{
+				net_close_socket( pRemoveSocket->pSocket );
+				pRemoveSocket->pSocket = 0;
+			
+			}
+			else 
+				log_print( "%s %s:%d !if ( remove_engine_socket( pRe failed????????????????", __FILE__, __FUNCTION__, __LINE__ );
+			
+			mem_free( pRemoveSocket );
+			pRemoveSocket = NULL;
+		}	
 	}
 	
 	unlock( &( pOwnerReactor->Locker ) );
@@ -808,16 +800,22 @@ CReactor *net_reactor( void )
 	{
 		memset( pNewReactor, 0x00, sizeof( *pNewReactor ) );
 		
-		if ( init_mutex( &( pNewReactor->Locker ) ) >= 0 )
+		if ( init_queue( &( pNewReactor->stSocketRemoveQ ) ) >= 0 )
 		{
-			pNewReactor->pEngine = create_engine(  );
-			if ( pNewReactor->pEngine )
+			if ( set_queue_water_level( &(pNewReactor->stSocketRemoveQ), 1024 * 100 ) >= 0 )
 			{
-				log_print( "create reactor ok..................." );
-				pRetCode = pNewReactor;
-			}
-			else 
-				log_print( "%s %s:%d !if ( pNewReactor->iEn failed????????????????", __FILE__, __FUNCTION__, __LINE__ );
+				if ( init_mutex( &( pNewReactor->Locker ) ) >= 0 )
+				{
+					pNewReactor->pEngine = create_engine(  );
+					if ( pNewReactor->pEngine )
+					{
+						log_print( "create reactor ok..................." );
+						pRetCode = pNewReactor;
+					}
+					else 
+						log_print( "%s %s:%d !if ( pNewReactor->iEn failed????????????????", __FILE__, __FUNCTION__, __LINE__ );
+				}		
+			}	
 		}
 	
 		if ( NULL == pRetCode )
@@ -904,14 +902,12 @@ int32_t remove_reactor_socket( CReactor *pReactor, CSocket *pSocket )
 			pRemoveSocket->pSocket = pSocket;
 			pRemoveSocket->pReactor = pReactor;
 			
-			if ( en_queue( &( fg_SocketRemoveQ ), &( pRemoveSocket->QNode ) ) >= 0 )
-				iRetCode = 0;
-			else 
+			while ( en_queue( &( pReactor->stSocketRemoveQ ), &( pRemoveSocket->QNode ) ) < 0 )
 			{
-				mem_free( pRemoveSocket );
-				
-				pRemoveSocket = NULL;		
+				os_sleep( 100 );				
 			}
+			
+			iRetCode = 0;
 		}
 		
 		unlock( &( pReactor->Locker ) );

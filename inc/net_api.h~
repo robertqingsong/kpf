@@ -13,6 +13,9 @@
 
 #include "oal_api.h"
 
+#include "lock.h"
+
+#include "queue.h"
 
 #if defined(__cplusplus)
 extern "C"
@@ -23,14 +26,16 @@ extern "C"
 typedef enum
 {
 	SOCKET_TYPE_STREAM = 1, 
-	SOCKET_TYPE_DGRAM
+	SOCKET_TYPE_DGRAM, 
+	SOCKET_TYPE_MULTICAST
 }C_SOCKET_TYPE;
 
 //socket property.
 typedef enum
 {
 	SOCKET_OPTION_NONE_BLOCK, 
-	SOCKET_OPTION_REUSE_ADDRESS
+	SOCKET_OPTION_REUSE_ADDRESS, 
+	SOCKET_OPTION_SET_MULTICAST
 }C_SOCKET_OPTION;
 
 #define SOCKET_ERROR  (-1)
@@ -48,7 +53,9 @@ typedef struct CNetAddr_t
 //socket param.
 typedef struct CSocketParam_t
 {
-	int32_t i;
+	int8_t *pIP[32];
+	int16u_t iPort;
+	
 }CSocketParam;
 
 //net engine.select, epoll, kqueue.
@@ -71,6 +78,10 @@ typedef struct CReactor_t
 	CNetEngine *pEngine;//net engine which is used to handle all sockets event in this reactor.
 	
 	reactor_callback_t fReactorCallback;
+	
+	CQueue stSocketRemoveQ;
+	
+	CMutex Locker;
 	
 	void *pUserData;
 }CReactor;
@@ -126,17 +137,15 @@ int32_t net_send( const CSocket *pSocketId, const int8u_t *pData, const int32_t 
 int32_t net_recv( const CSocket *pSocketId, int8u_t *pRecvDataBuf, const int32_t iRecvBufLen );
 
 //send udp data.
-int32_t net_sendto( const CSocket *pSocketId, const int8u_t *pData, const int32_t iDataLen );
+int32_t net_sendto( const CSocket *pSocketId, const int8u_t *pData, const int32_t iDataLen, CNetAddr *pPeerAddr );
 
 //receive upp data.
 int32_t net_recvfrom( const CSocket *pSocketId, int8u_t *pRecvDataBuf, const int32_t iRecvBufLen, CNetAddr *pPeerAddr );
-							
-//init reactor.
-int32_t init_reactor( void );
-
-//release reactor.
-void release_reactor( void );
 	
+//reactor api.
+int32_t init_reactor( void );	
+void release_reactor( void );	
+
 //create reactor.
 CReactor *net_reactor( void );
 

@@ -69,7 +69,6 @@ static int32_t handle_input( const struct CSession_t *pThis,
 	if ( pThis && pSocket )
 	{
 		int8u_t pRecvBuf[1024] = { 0x00, };
-		CNetAddr stPeerAddr;
 		
 		iRetCode = net_recv( pSocket, pRecvBuf, sizeof(pRecvBuf) );
 		

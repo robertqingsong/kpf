@@ -34,6 +34,8 @@ typedef struct CEventParam_t
 {
 	CSocket *pSocket;
 	
+	CNetAddr stNetAddr;
+	
 }CEventParam;
 
 typedef struct CSessionParam_t

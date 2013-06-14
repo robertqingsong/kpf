@@ -15,6 +15,7 @@
 
 #include "lock.h"
 
+#include "queue.h"
 
 #if defined(__cplusplus)
 extern "C"
@@ -77,6 +78,8 @@ typedef struct CReactor_t
 	CNetEngine *pEngine;//net engine which is used to handle all sockets event in this reactor.
 	
 	reactor_callback_t fReactorCallback;
+	
+	CQueue stSocketRemoveQ;
 	
 	CMutex Locker;
 	

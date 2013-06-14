@@ -47,8 +47,8 @@ int main( int argc, char **argv )
 {
 	CSession *pSession = NULL;
 	CSessionParam stSessionParam;
-	const int8_t *pPeerIP = "www.baidu.com";
-	const int16u_t iPeerPort = 80;
+	const int8_t *pPeerIP = "192.168.1.100";
+	const int16u_t iPeerPort = 9001;
 	
 	enable_log( 1 );
 	set_log( LOG_TYPE_CONSOLE, NULL, 0 );

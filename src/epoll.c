@@ -27,7 +27,7 @@
 #define MAX_EPOLL_RUN_TIMEOUT  (100)
 
 
-extern int32_t common_engine_callback( const int32_t iSocketId, void *pUserData );
+extern int32_t common_engine_callback( const int32_t iSocketId, void *pUserData, int32_t iEndFlag );
 
 static void *engin_proc_task( void *pParam )
 {
@@ -51,16 +51,30 @@ static void *engin_proc_task( void *pParam )
 		
 		if ( iActiveSocketCount > 0 )
 		{
-			log_print( "their have sockets available, iActiveSocketCount->%d..................", iActiveSocketCount );
+			//log_print( "their have sockets available, iActiveSocketCount->%d..................", iActiveSocketCount );
 			for ( i = 0; i < iActiveSocketCount; i++ )
 			{
 				int32_t iSocketId = pEvents[i].data.fd;
 				void *pUserData = pEvents[i].data.ptr;
 				
-				log_print( "socket %d is active..............\r\n", iSocketId );
-				if ( common_engine_callback( iSocketId, pUserData ) < 0 )
+				//log_print( "socket %d is active..............\r\n", iSocketId );
+				
+				if ( iSocketId > 0 )
 				{
-					log_print( "engine callback returns < 0 failed?????????????????????" );	
+					if ( i == iActiveSocketCount - 1 )
+					{
+						if ( common_engine_callback( iSocketId, pUserData, 1 ) < 0 )
+						{
+							log_print( "engine callback returns < 0 failed?????????????????????" );	
+						}
+					}
+					else 
+					{
+						if ( common_engine_callback( iSocketId, pUserData, 0 ) < 0 )
+						{
+							log_print( "engine callback returns < 0 failed?????????????????????" );	
+						}
+					}
 				}
 			}
 		}
