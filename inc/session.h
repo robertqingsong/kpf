@@ -4,6 +4,8 @@
 #include "config.h"
 #include "net_api.h"
 
+#include "lock.h"
+
 #if defined(__cplusplus)
 extern "C"
 {
@@ -30,6 +32,13 @@ typedef enum CSessionEvent_t
 	EVENT_ACCEPT_NEW_STREAM_CLIENT_NOTIFY
 }C_SESSION_EVENT;
 
+//http method define.
+typedef enum C_HTTP_ACTION_T
+{
+	SESSION_HTTP_GET, 
+	SESSION_HTTP_POST
+}C_HTTP_ACTION;
+
 typedef struct CEventParam_t
 {
 	CSocket *pSocket;
@@ -46,6 +55,26 @@ typedef struct CSessionParam_t
 	int8_t pLocalIP[32];
 	int16u_t iLocalPort;
 }CSessionParam;
+
+//http client type define.
+typedef struct CHttpData_t
+{
+	void *pSetting;
+	
+	void *pParser;	
+	
+	int8_t *pURL;
+	
+	int8_t *pHost;
+	
+	int8_t *pHttpData;
+	int32_t iHttpDataBufLen;
+	int32_t iCurrentHttpDataLen;
+	
+	C_HTTP_ACTION eHttpAction;
+	
+	int32_t iEndFlag;
+}CHttpData;
 
 typedef int32_t (*session_business_t)( const struct CSession_t *pThis, 
 					 const CSocket *pSocket, 
@@ -88,11 +117,20 @@ typedef struct CSession_t
 				 const CEventParam *pEventParam, 
 				 const int32_t iEventParamSize );
 				 
+	//session param.
+	CSessionParam stSessionParam;				 
+				 
 	//session data define.
 	CReactor *pOwnerReactor;
 	CSocket *pSocket;
 	
 	CNetAddr stPeerAddr;
+	
+	int32_t iBlockId;//block id.	
+	
+	void *pResultCode;//point to result.
+	
+	CMutex Locker;
 }CSession;
 
 //init session.
