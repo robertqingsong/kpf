@@ -13,7 +13,7 @@ OBJECTS=../../src/block.o ../../src/bsearch.o ../../src/future.o ../../src/list.
 	../../src/log.o ../../src/oal_api.o ../../src/smart.o ../../src/queue.o \
 	../../src/pine.o ../../src/avl.o ../../src/hash.o ../../src/timer.o ../../src/epoll.o ../../src/session.o \
 	../../src/dgram_session.o ../../src/stream_session.o ../../src/dgram_service_session.o ../../src/stream_service_session.o \
-	../../src/http_parser.o ../../src/http_session.o
+	../../src/http_parser.o ../../src/http_session.o ../../src/datacache.o
 
 all:$(OBJECTS)
 	$(AR) rc  $(TARGET) $(OBJECTS)
@@ -34,6 +34,7 @@ demo:
 	$(CC) ../../sdk/dgram_service_session_test.c $(LDFLAGS) $(INCLUDE_DIR) -o dgram_service_session_test -L./ -lkpf -lpthread
 	$(CC) ../../sdk/stream_service_session_test.c $(LDFLAGS) $(INCLUDE_DIR) -o stream_service_session_test -L./ -lkpf -lpthread
 	$(CC) ../../sdk/http_session_test.c $(LDFLAGS) $(INCLUDE_DIR) -o http_session_test -L./ -lkpf -lpthread
+	$(CC) ../../sdk/test_datacache.c $(LDFLAGS) $(INCLUDE_DIR) -o test_datacache -L./ -lkpf -lpthread
 
 clean:
 	$(RM) -rf $(OBJECTS)
