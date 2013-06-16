@@ -575,7 +575,7 @@ int32_t net_recv( const CSocket *pSocket, int8u_t *pRecvDataBuf, const int32_t i
 				iRetCode = SOCKET_ERROR;	
 			}
 			else 
-				iRetCode = SOCKET_ERROR_NONE;
+				iRetCode = SOCKET_ERROR_AGAIN;
 		}
 
 #endif	

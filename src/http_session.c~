@@ -316,7 +316,7 @@ static int32_t handle_input( const struct CSession_t *pThis,
 					}	
 				}
 			}
-		}//while ( iRetCode > 0 );
+		}while ( iRetCode > 0 );
 		
 		unlock( &( pThis->Locker ) );
 	}
