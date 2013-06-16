@@ -562,7 +562,7 @@ int32_t net_recv( const CSocket *pSocket, int8u_t *pRecvDataBuf, const int32_t i
 		
 		if ( 0 == iRetCode )
 		{
-			log_print( "%s %s:%d !if ( 0 == iRetCode )failed????????????????", __FILE__, __FUNCTION__, __LINE__ );
+			//log_print( "%s %s:%d !if ( 0 == iRetCode )failed????????????????", __FILE__, __FUNCTION__, __LINE__ );
 			iRetCode = SOCKET_ERROR;	
 		}
 		else if ( iRetCode < 0 )
@@ -874,7 +874,7 @@ int32_t add_reactor_socket( CReactor *pReactor, CSocket *pSocket, void *pUserDat
 			
 		if ( add_engine_socket( pReactor->pEngine, pSocket->iSocketId, pSocket ) >= 0 )
 		{
-			log_print( "add socket to engine ok, pSocket->iSocketId->%d...............", pSocket->iSocketId );
+			//log_print( "add socket to engine ok, pSocket->iSocketId->%d...............", pSocket->iSocketId );
 			iRetCode = 0;
 		}
 		else 

@@ -7,6 +7,8 @@
 
 #include "session.h"
 
+FILE *pHandle = NULL;
+
 int32_t stream_session_business( const struct CSession_t *pThis, 
 					 const CSocket *pSocket, 
 				    const int8u_t *pInData, 
@@ -17,7 +19,17 @@ int32_t stream_session_business( const struct CSession_t *pThis,
 	
 	if ( pInData )
 	{
-	//	log_print( pInData );
+		CHttpData *pHttpData = (CHttpData *)pInData;
+		
+		if ( pHttpData )
+		{
+			//fwrite( pHttpData->pHttpData, 1, pHttpData->iCurrentHttpDataLen, pHandle );
+			//fflush( pHandle );
+			
+			//log_print( "pHttpData->iCurrentHttpDataLen-->%d", pHttpData->iCurrentHttpDataLen );
+			//fwrite( pHttpData->pHttpData, 1, pHttpData->iCurrentHttpDataLen, stdout );
+			//fflush( stdout );
+		}
 		
 		iRetCode = 0;
 	}
@@ -46,15 +58,23 @@ int32_t stream_session_event( const struct CSession_t *pThis,
 	return iRetCode;	
 }
 
+
 int main( int argc, char **argv )
 {
 	CSession *pSession = NULL;
 	CSessionParam stSessionParam;
-	const int8_t *pPeerIP = "www.baidu.com";
+	const int8_t *pPeerIP = "www.lelsen.sinaapp.com";
+	//const int8_t *pPeerIP = "www.baidu.com";
+	const int8_t *pURL = "/business/api/punch.php";
+	//const int8_t *pURL = "/index.html";
 	const int16u_t iPeerPort = 80;
 	
 	enable_log( 1 );
 	set_log( LOG_TYPE_CONSOLE, NULL, 0 );
+	
+	pHandle = fopen( "./log.txt", "wb" );
+	if ( !pHandle )
+		return -1;
 	
 	if ( init_session(  ) < 0 )
 		return -1;
@@ -79,10 +99,10 @@ int main( int argc, char **argv )
 				
 				memset( &stHttpData, 0x00, sizeof(stHttpData) );
 				stHttpData.pHost = pPeerIP;
-				stHttpData.pURL = "/index.html";
+				stHttpData.pURL = pURL;
 				stHttpData.eHttpAction = SESSION_HTTP_GET;
 
-				//while ( 1 )
+				while ( 1 )
 				{
 					int i, iNSent = -1;
 					

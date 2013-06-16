@@ -98,7 +98,7 @@ static void release( struct CSession_t *pThis )
 
 static int on_message_begin(http_parser* pParser) {
 
-  printf("\n***MESSAGE BEGIN***\n\n");
+ // printf("\n***MESSAGE BEGIN***\n\n");
 
 	//log_print( "pParser->content_length-->%d", pParser->content_length );  
   
@@ -122,7 +122,7 @@ static int on_message_complete(http_parser* pParser) {
 		pHttpData->iEndFlag = 1;
 	}
 
-  printf("\n***MESSAGE COMPLETE***\n\n");
+  //printf("\n***MESSAGE COMPLETE***\n\n");
   
  // log_print( "pParser->content_length-->%d", pParser->content_length );  
 
@@ -253,9 +253,7 @@ static int32_t start_parsing_http_data( CSession *pThis, const int8u_t *pDataBuf
  	 			
  	 			//fwrite( pHttpData->pHttpData, 1, pHttpData->iCurrentHttpDataLen, stdout );
  	 			//fflush( stdout );
- 	 			
- 	 			pHttpData->iCurrentHttpDataLen = 0;
- 	 			pHttpData->iEndFlag = 0;
+ 	 		
 
  	 			iRetCode = 0;	
  	 		}
@@ -287,15 +285,26 @@ static int32_t handle_input( const struct CSession_t *pThis,
 		do 
 		{
 			iRetCode = net_recv( pSocket, pRecvBuf, sizeof(pRecvBuf) );
-			log_print( "read %d bytes.", iRetCode );
+			//log_print( "read %d bytes.", iRetCode );
 			if ( iRetCode > 0 )
 			{
+				//fwrite( pRecvBuf, 1, iRetCode, stdout );
+				//fflush( stdout );
 				if ( start_parsing_http_data( pThis, pRecvBuf, iRetCode ) >= 0 )
 				{
 					if ( pThis->handle_business )
 					{
-						log_print( "http data notify................" );
+						CHttpData *pHttpData = (CHttpData *)pThis->pResultCode;
+ 	 			
+						//log_print( "http data notify................" );
 						pThis->handle_business( pThis, pSocket, pThis->pResultCode, sizeof(CHttpData), NULL );
+					
+						if ( pHttpData )
+						{
+							pHttpData->iCurrentHttpDataLen = 0;
+ 	 						pHttpData->iEndFlag = 0;
+ 	 						http_parser_init( pHttpData->pParser, HTTP_RESPONSE );
+ 	 					}
 					}
 				}
 			}
@@ -337,11 +346,6 @@ static int32_t get_http_send_string( const CHttpData *pHttpData, int8_t *pOutDat
 			snprintf( pOutDataBuf, iOutBufSize, 
 						 "GET %s HTTP/1.1\r\n"
          			 "Host: %s\r\n"
-         			 "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9) Gecko/2008061015 Firefox/3.0\r\n"
-         			 "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\r\n"
-         			 "Accept-Language: en-us,en;q=0.5\r\n"
-         			 "Accept-Encoding: gzip,deflate\r\n"
-         			 "Accept-Charset: ISO-8859-1,utf-8;q=0.7,*;q=0.7\r\n"
          			 "Keep-Alive: 300\r\n"
          			 "Connection: keep-alive\r\n"
          			 "\r\n", 
@@ -397,7 +401,7 @@ static int32_t handle_output( const struct CSession_t *pThis,
 				//log_print( pSendBuf );
 				
 				iRetCode = net_send( pThis->pSocket, pSendBuf, iSendLen );
-				log_print( "send: %d bytes", iRetCode );
+				//log_print( "send: %d bytes", iRetCode );
 			}
 			else 
 				log_print( "Send Len < 0????????????????" );
