@@ -65,14 +65,14 @@ static void *engin_proc_task( void *pParam )
 					{
 						if ( common_engine_callback( iSocketId, pUserData, 1 ) < 0 )
 						{
-							log_print( "engine callback returns < 0 failed?????????????????????" );	
+							//log_print( "engine callback returns < 0 failed?????????????????????" );	
 						}
 					}
 					else 
 					{
 						if ( common_engine_callback( iSocketId, pUserData, 0 ) < 0 )
 						{
-							log_print( "engine callback returns < 0 failed?????????????????????" );	
+						//	log_print( "engine callback returns < 0 failed?????????????????????" );	
 						}
 					}
 				}
@@ -157,22 +157,22 @@ int32_t add_engine_socket( CNetEngine *pEngine, int32_t iSocketId, void *pUserDa
 {
 	int32_t iRetCode = -1;
 	
-	log_print( "add_engine_socket:-------------------------->" );
+	//log_print( "add_engine_socket:-------------------------->" );
 	if ( pEngine && iSocketId >= 0 )
 	{
 		struct epoll_event ev;
 		
 		//add socket to ...
 		memset( &ev, 0x00, sizeof(ev) );
-		ev.events = EPOLLIN | EPOLLET;
+		ev.events = EPOLLIN | EPOLLLT;
 		ev.data.fd = iSocketId;
 		ev.data.ptr = pUserData;
 		
-		log_print( "start to add socket to epoll: pEngine->iEngineId->%d, iSocketId->%d...............", 
-						pEngine->iEngineId, iSocketId );
+		//log_print( "start to add socket to epoll: pEngine->iEngineId->%d, iSocketId->%d...............", 
+			//			pEngine->iEngineId, iSocketId );
 		if ( epoll_ctl( pEngine->iEngineId, EPOLL_CTL_ADD, iSocketId, &ev ) >= 0 )
 		{
-			log_print( "add socket to epoll ok................." );
+			//log_print( "add socket to epoll ok................." );
 			iRetCode = 0;
 		}
 		else 
@@ -181,7 +181,7 @@ int32_t add_engine_socket( CNetEngine *pEngine, int32_t iSocketId, void *pUserDa
 	else 
 		log_print( "%s %s:%d !if ( iEngineId && iSocketId >= 0 ) failed????????????????", __FILE__, __FUNCTION__, __LINE__ );
 	
-	log_print( "add_engine_socket<--------------------------------" );	
+	//log_print( "add_engine_socket<--------------------------------" );	
 	
 	return iRetCode;	
 }
@@ -200,9 +200,9 @@ int32_t remove_engine_socket( CNetEngine *pEngine, int32_t iSocketId )
 		ev.data.fd = iSocketId;
 		//remove socket from ...
 		
-		log_print( "start to delete socket from epoll................" );
+		//log_print( "start to delete socket from epoll................" );
 		epoll_ctl( pEngine->iEngineId, EPOLL_CTL_DEL, iSocketId, &ev );
-		log_print( "remove socket from epoll ok.................." );
+		//log_print( "remove socket from epoll ok.................." );
 		
 		iRetCode = 0;
 	}

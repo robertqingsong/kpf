@@ -38,6 +38,7 @@ typedef enum
 	SOCKET_OPTION_SET_MULTICAST
 }C_SOCKET_OPTION;
 
+#define SOCKET_ERROR_NONE  (0)
 #define SOCKET_ERROR  (-1)
 #define SOCKET_ERROR_AGAIN  (-2)
 

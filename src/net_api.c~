@@ -101,8 +101,8 @@ int32_t net_n2ip( const int64u_t inIP, int8_t *pIP, const int32_t iIPBufLen )
 			{
 				memcpy( pIP, pTempIP, iLen + 1 );
 				
-				printf( "inIP-->%u.\r\n", inIP );
-				printf( "pIP-->%s.\r\n", pIP );
+				//printf( "inIP-->%u.\r\n", inIP );
+				//printf( "pIP-->%s.\r\n", pIP );
 			
 				iRetCode = 0;
 			}
@@ -569,9 +569,13 @@ int32_t net_recv( const CSocket *pSocket, int8u_t *pRecvDataBuf, const int32_t i
 		{
 			if ( EAGAIN != errno )
 			{
-				log_print( "%s %s:%d !if ( EAGAIN != errno ) failed????????????????", __FILE__, __FUNCTION__, __LINE__ );
+				perror( "--------------->" );
+				log_print( "read failed:errno-->%d", errno );
+
 				iRetCode = SOCKET_ERROR;	
 			}
+			else 
+				iRetCode = SOCKET_ERROR_NONE;
 		}
 
 #endif	

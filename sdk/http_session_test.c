@@ -37,7 +37,7 @@ int32_t stream_session_event( const struct CSession_t *pThis,
 	{
 		if ( EVENT_READ_ERROR == eEvent )
 		{
-			log_print( "read http data error??????????????????????????" );
+			//log_print( "read http data error??????????????????????????" );
 			
 			remove_session_socket( pThis, pEventParam->pSocket );
 		}
@@ -50,7 +50,7 @@ int main( int argc, char **argv )
 {
 	CSession *pSession = NULL;
 	CSessionParam stSessionParam;
-	const int8_t *pPeerIP = "www.sina.com.cn";
+	const int8_t *pPeerIP = "www.baidu.com";
 	const int16u_t iPeerPort = 80;
 	
 	enable_log( 1 );

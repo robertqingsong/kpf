@@ -11,6 +11,8 @@
 
 #include "../inc/stream_service_session.h"
 
+#include "../inc/http_session.h"
+
 #include "../inc/pine.h"
 
 typedef struct CSessionManager_t
@@ -81,10 +83,13 @@ static CSession *get_session( C_SESSION_TYPE eSessionType )
 		pRetCode = get_stream_service_session(  );
 	}break ;
 	case SESSION_TYPE_MULTICAST_LISTENER:
+	{
+		
+	}break ;
 	
 	case SESSION_TYPE_HTTP_CLIENT:
 	{
-		
+		pRetCode = get_http_session(  );
 	}break ;
 	default:
 	{
@@ -200,6 +205,7 @@ CSession *create_session( C_SESSION_TYPE eSessionType, const CSessionParam *pSes
 				
 				if ( pNewSession->init )
 				{
+					pNewSession->stSessionParam = *pSessionParam;
 					if ( pNewSession->init( pNewSession, pSessionParam ) >= 0 )
 						pRetCode = pNewSession;	
 				}
@@ -272,8 +278,12 @@ int32_t send_session_data( const CSession *pThis, const int8u_t *pData, const in
 	if ( pThis && pData && iDataLen > 0 )
 	{
 		if ( pThis->handle_output )
-			iRetCode = pThis->handle_output( pThis, pData, iDataLen, pNetAddr );	
+			iRetCode = pThis->handle_output( pThis, pData, iDataLen, pNetAddr );
+		else 
+			log_print( "session handle_output function is NULL??????????????????" );
 	}
+	else 
+		log_print( "send session data cond failed??????????????????" );
 	
 	return iRetCode;	
 }
@@ -298,7 +308,11 @@ int32_t remove_session_socket( CSession *pThis, const CSocket *pSocket )
 	int32_t iRetCode = -1;
 	
 	if ( pThis && pSocket )
+	{
+		if ( pThis->pSocket == pSocket )
+			pThis->pSocket = NULL;
 		iRetCode = remove_reactor_socket( pThis->pOwnerReactor, pSocket );
+	}
 	
 	return iRetCode;	
 }

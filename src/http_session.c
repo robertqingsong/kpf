@@ -42,7 +42,7 @@ static int32_t init_http_socket( struct CSession_t *pThis, const CSessionParam *
 					log_print( "set none blocking socket failed???????????????" );
 			}
 			else 
-			log_print( "add reactor socket failed???????????????????" );
+				log_print( "add reactor socket failed???????????????????" );
 		}
 		else 
 			log_print( "connect failed????????????????" );
@@ -98,7 +98,7 @@ static void release( struct CSession_t *pThis )
 
 static int on_message_begin(http_parser* pParser) {
 
-  //printf("\n***MESSAGE BEGIN***\n\n");
+  printf("\n***MESSAGE BEGIN***\n\n");
 
 	//log_print( "pParser->content_length-->%d", pParser->content_length );  
   
@@ -107,7 +107,7 @@ static int on_message_begin(http_parser* pParser) {
 
 static int on_headers_complete(http_parser* pParser) {
 
-  //printf("\n***HEADERS COMPLETE***\n\n");
+ // printf("\n***HEADERS COMPLETE***\n\n");
   
  // log_print( "pParser->content_length-->%d", pParser->content_length );  
   
@@ -122,7 +122,7 @@ static int on_message_complete(http_parser* pParser) {
 		pHttpData->iEndFlag = 1;
 	}
 
- // printf("\n***MESSAGE COMPLETE***\n\n");
+  printf("\n***MESSAGE COMPLETE***\n\n");
   
  // log_print( "pParser->content_length-->%d", pParser->content_length );  
 
@@ -170,7 +170,7 @@ static int on_body(http_parser* pParser, const char* at, size_t length) {
 			memcpy( pHttpData->pHttpData + pHttpData->iCurrentHttpDataLen, at, length );
 			pHttpData->iCurrentHttpDataLen += length;
 			
-			log_print( "pHttpData->iCurrentHttpDataLen-->%d", pHttpData->iCurrentHttpDataLen );
+			//log_print( "pHttpData->iCurrentHttpDataLen-->%d", pHttpData->iCurrentHttpDataLen );
 		}	
 	}
 
@@ -247,7 +247,7 @@ static int32_t start_parsing_http_data( CSession *pThis, const int8u_t *pDataBuf
  	 	NParsed = http_parser_execute( pHttpData->pParser, pHttpData->pSetting, pDataBuf, iDataLen );
  	 	if ( NParsed >= 0 )
  	 	{
- 	 		log_print( "execute end........" );
+ 	 		//log_print( "execute end........" );
  	 		if ( pHttpData->iEndFlag )
  	 		{
  	 			
@@ -255,11 +255,12 @@ static int32_t start_parsing_http_data( CSession *pThis, const int8u_t *pDataBuf
  	 			//fflush( stdout );
  	 			
  	 			pHttpData->iCurrentHttpDataLen = 0;
+ 	 			pHttpData->iEndFlag = 0;
 
  	 			iRetCode = 0;	
  	 		}
- 	 		else 
- 	 			log_print( "pHttpData->iEndFlag-->%d", pHttpData->iEndFlag );
+ 	 		//else 
+ 	 			//log_print( "pHttpData->iEndFlag-->%d", pHttpData->iEndFlag );
  	 	}
  	 	else 
  	 		log_print( "NParsed-->%d", NParsed );
@@ -283,36 +284,39 @@ static int32_t handle_input( const struct CSession_t *pThis,
 		
 		lock( &( pThis->Locker ) );
 		
-		iRetCode = net_recv( pSocket, pRecvBuf, sizeof(pRecvBuf) );
-		
-		if ( iRetCode > 0 )
+		do 
 		{
-			if ( start_parsing_http_data( pThis, pRecvBuf, iRetCode ) >= 0 )
+			iRetCode = net_recv( pSocket, pRecvBuf, sizeof(pRecvBuf) );
+			log_print( "read %d bytes.", iRetCode );
+			if ( iRetCode > 0 )
 			{
-				if ( pThis->handle_business )
+				if ( start_parsing_http_data( pThis, pRecvBuf, iRetCode ) >= 0 )
 				{
-					log_print( "http data notify................" );
-					pThis->handle_business( pThis, pSocket, pThis->pResultCode, sizeof(CHttpData), NULL );
+					if ( pThis->handle_business )
+					{
+						log_print( "http data notify................" );
+						pThis->handle_business( pThis, pSocket, pThis->pResultCode, sizeof(CHttpData), NULL );
+					}
 				}
 			}
-		}
-		else 
-		{
-			if ( SOCKET_ERROR == iRetCode )
+			else 
 			{
-				if ( pThis->handle_event )
+				if ( SOCKET_ERROR == iRetCode )
 				{
-					CEventParam stEventParam;
+					if ( pThis->handle_event )
+					{
+						CEventParam stEventParam;
 					
-					memset( &stEventParam, 0x00, sizeof(stEventParam) );
+						memset( &stEventParam, 0x00, sizeof(stEventParam) );
 					
-					stEventParam.pSocket = pSocket;
+						stEventParam.pSocket = pSocket;
 					
-					log_print( "http server close connection............" );
-					pThis->handle_event( pThis, EVENT_READ_ERROR, &stEventParam, sizeof(stEventParam) );
+						//log_print( "http server close connection............" );
+						pThis->handle_event( pThis, EVENT_READ_ERROR, &stEventParam, sizeof(stEventParam) );
+					}	
 				}
 			}
-		}
+		}while ( iRetCode > 0 );
 		
 		unlock( &( pThis->Locker ) );
 	}
@@ -390,7 +394,7 @@ static int32_t handle_output( const struct CSession_t *pThis,
 			
 			if ( iSendLen > 0 )
 			{
-				log_print( pSendBuf );
+				//log_print( pSendBuf );
 				
 				iRetCode = net_send( pThis->pSocket, pSendBuf, iSendLen );
 				log_print( "send: %d bytes", iRetCode );
