@@ -164,13 +164,13 @@ void release_block( void )
 }
 
 //create block.
-int32u_t block_create( int32_t iTimeInSeconds )
+void *block_create( int32_t iTimeInSeconds )
 {
-	int32u_t iRetCode = 0;
+	void *pRetCode = NULL;
 	CBlock *pNewBlock = NULL;
 		
 	if ( is_block_manager_ready(  ) < 0 )
-		return iRetCode;
+		return pRetCode;
 	
 	if ( iTimeInSeconds > 0 )
 	{
@@ -187,10 +187,10 @@ int32u_t block_create( int32_t iTimeInSeconds )
 			
 			if ( insert_list_head_rear( &( fg_BlockManager.pBlockLHead ), &( pNewBlock->LNode ) ) >= 0 )
 			{
-				iRetCode = (int32u_t)(((int8u_t *)pNewBlock) + sizeof( *pNewBlock ));
+				pRetCode = (void *)(((int8u_t *)pNewBlock) + sizeof( *pNewBlock ));
 			}
 			
-			if ( 0 == iRetCode )
+			if ( 0 == pRetCode )
 			{
 				mem_free( pNewBlock );
 				pNewBlock = NULL;
@@ -200,24 +200,24 @@ int32u_t block_create( int32_t iTimeInSeconds )
 		unlock( &( fg_BlockManager.Locker ) );
 	}
 	
-	return iRetCode;
+	return pRetCode;
 }
 
 //destroy block.
-int32_t block_destroy( int32u_t iBlockId )
+int32_t block_destroy( void *pBlockHandle )
 {
 	int32_t iRetCode = -1;
 	
 	if ( is_block_manager_ready(  ) < 0 )
 		return iRetCode;
 		
-	if ( iBlockId )
+	if ( pBlockHandle )
 	{
 		CBlock *pBlock = NULL;
 		
 		lock( &( fg_BlockManager.Locker ) );
 		
-		pBlock = (CBlock *)(iBlockId - sizeof( *pBlock ));
+		pBlock = (CBlock *)((int8u_t *)pBlockHandle - sizeof( *pBlock ));
 		
 		if ( remove_list_head_node( &( fg_BlockManager.pBlockLHead ), &( pBlock->LNode ) ) >= 0 )
 		{
@@ -234,18 +234,18 @@ int32_t block_destroy( int32u_t iBlockId )
 }
 
 //request block current thread.
-int32_t block_wait( int32u_t iBlockId )
+int32_t block_wait( void *pBlockHandle )
 {
 	int32_t iRetCode = -1;
 	
 	if ( is_block_manager_ready(  ) < 0 )
 		return iRetCode;
 		
-	if ( iBlockId )
+	if ( pBlockHandle )
 	{
 		CBlock *pBlock = NULL;
 		
-		pBlock = iBlockId - sizeof( *pBlock );
+		pBlock = (int8u_t *)pBlockHandle - sizeof( *pBlock );
 		while ( pBlock->iBlockFlag )//shared read.
 			os_sleep( 10 );
 			
@@ -256,18 +256,18 @@ int32_t block_wait( int32u_t iBlockId )
 }
 
 //block exiting.
-int32_t block_exiting( int32u_t iBlockId )
+int32_t block_exiting( void *pBlockHandle )
 {
 	int32_t iRetCode = -1;
 
 	if ( is_block_manager_ready(  ) < 0 )
 		return iRetCode;
 		
-	if ( iBlockId )
+	if ( pBlockHandle )
 	{
 		CBlock *pBlock = NULL;
 		
-		pBlock = iBlockId - sizeof( *pBlock );
+		pBlock = (int8u_t *)pBlockHandle - sizeof( *pBlock );
 
 		pBlock->iIsExiting = 1;
 			
@@ -278,20 +278,20 @@ int32_t block_exiting( int32u_t iBlockId )
 }
 
 //release block.
-int32_t block_post( int32u_t iBlockId )
+int32_t block_post( void *pBlockHandle )
 {
 	int32_t iRetCode = -1;
 	
 	if ( is_block_manager_ready(  ) < 0 )
 		return iRetCode;
 		
-	if ( iBlockId )
+	if ( pBlockHandle )
 	{
 		CBlock *pBlock = NULL;
 		
 		lock( &( fg_BlockManager.Locker ) );
 
-		pBlock = iBlockId - sizeof( *pBlock );
+		pBlock = (int8u_t *)pBlockHandle - sizeof( *pBlock );
 		pBlock->iBlockFlag = 0;//write protect.
 			
 		iRetCode = 0;

@@ -24,19 +24,19 @@ int32_t init_block( void );
 void release_block( void );
 
 //create block.
-int32u_t block_create( int32_t iTimeInSeconds );
+void *block_create( int32_t iTimeInSeconds );
 
 //destroy block.
-int32_t block_destroy( int32u_t iBlockId );
+int32_t block_destroy( void *pBlockHandle );
 
 //request block current thread.
-int32_t block_wait( int32u_t iBlockId );
+int32_t block_wait( void *pBlockHandle );
 
 //block exiting.
-int32_t block_exiting( int32u_t iBlockId );
+int32_t block_exiting( void *pBlockHandle );
 
 //release block.
-int32_t block_post( int32u_t iBlockId );
+int32_t block_post( void *pBlockHandle );
 
 #if defined(__cplusplus)
 }
