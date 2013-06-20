@@ -18,6 +18,8 @@ typedef struct CBlock_t
 	int32_t iCurrentTimeInMileSeconds;
 	
 	int32_t iBlockFlag;//block flag. 0 no block, 1 blocking.
+
+	int32_t iIsExiting;//is exiting.	
 	
 	CListNode LNode;//list node.
 }CBlock;
@@ -60,7 +62,8 @@ static int32_t block_timer_callback( int32u_t iTimerId, void *pUserData )
 			if ( pTempBlock->iCurrentTimeInMileSeconds >= pTempBlock->iBlockTimeInSeconds * 1000 )
 			{
 				//time out.
-				pTempBlock->iBlockFlag = 0;//write protect.
+				if ( !(pTempBlock->iIsExiting) )
+					pTempBlock->iBlockFlag = 0;//write protect.
 			}
 		}
 	}
@@ -127,6 +130,9 @@ static void release_block_manager( void )
 	{
 		lock( &( fg_BlockManager.Locker ) );
 		
+		unregister_timer( fg_BlockManager.iBlockTimeOutTimerId );
+		fg_BlockManager.iBlockTimeOutTimerId = 0;
+		
 		reset_queue( &( fg_BlockManager.stRemoveQ ) );
 		fg_BlockManager.pBlockLHead = NULL;
 		
@@ -177,10 +183,11 @@ int32u_t block_create( int32_t iTimeInSeconds )
 			
 			pNewBlock->iBlockTimeInSeconds = iTimeInSeconds;//write protect.s;
 			pNewBlock->iBlockFlag = 1;//is blocking.
+			pNewBlock->iIsExiting = 0;
 			
 			if ( insert_list_head_rear( &( fg_BlockManager.pBlockLHead ), &( pNewBlock->LNode ) ) >= 0 )
 			{
-				iRetCode = (((int8u_t *)pNewBlock) + sizeof( *pNewBlock ));
+				iRetCode = (int32u_t)(((int8u_t *)pNewBlock) + sizeof( *pNewBlock ));
 			}
 			
 			if ( 0 == iRetCode )
@@ -210,7 +217,7 @@ int32_t block_destroy( int32u_t iBlockId )
 		
 		lock( &( fg_BlockManager.Locker ) );
 		
-		pBlock = iBlockId - sizeof( *pBlock );
+		pBlock = (CBlock *)(iBlockId - sizeof( *pBlock ));
 		
 		if ( remove_list_head_node( &( fg_BlockManager.pBlockLHead ), &( pBlock->LNode ) ) >= 0 )
 		{
@@ -246,6 +253,28 @@ int32_t block_wait( int32u_t iBlockId )
 	}
 	
 	return iRetCode;
+}
+
+//block exiting.
+int32_t block_exiting( int32u_t iBlockId )
+{
+	int32_t iRetCode = -1;
+
+	if ( is_block_manager_ready(  ) < 0 )
+		return iRetCode;
+		
+	if ( iBlockId )
+	{
+		CBlock *pBlock = NULL;
+		
+		pBlock = iBlockId - sizeof( *pBlock );
+
+		pBlock->iIsExiting = 1;
+			
+		iRetCode = 0;
+	}
+	
+	return iRetCode;	
 }
 
 //release block.
