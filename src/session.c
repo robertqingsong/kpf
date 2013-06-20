@@ -241,13 +241,14 @@ void destroy_session( CSession *pThis )
 }
 
 //set session business.
-int32_t set_session_business( CSession *pThis, session_business_t business )
+int32_t set_session_business( CSession *pThis, session_business_t business, void *pUserData )
 {
 	int32_t iRetCode = -1;
 	
 	if ( pThis && business )
 	{
 		pThis->handle_business = business;
+		pThis->pUserData = pUserData;
 		
 		iRetCode = 0;	
 	}

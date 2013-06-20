@@ -80,12 +80,14 @@ typedef int32_t (*session_business_t)( const struct CSession_t *pThis,
 					 const CSocket *pSocket, 
 				    const int8u_t *pInData, 
 				    const int32_t iInDataLen, 
-				    const CNetAddr *pNetAddr );
+				    const CNetAddr *pNetAddr, 
+				    void *pUserData );
 
 typedef int32_t (*session_event_t)( const struct CSession_t *pThis, 
 				 const C_SESSION_EVENT eEvent, 
 				 const CEventParam *pEventParam, 
-				 const int32_t iEventParamSize );
+				 const int32_t iEventParamSize, 
+				 void *pUserData );
 
 typedef struct CSession_t
 {
@@ -109,13 +111,15 @@ typedef struct CSession_t
 					 const CSocket *pSocket, 
 				    const int8u_t *pInData, 
 				    const int32_t iInDataLen, 
-				    const CNetAddr *pNetAddr );
+				    const CNetAddr *pNetAddr, 
+				    void *pUserData );
 
 	//event.
 	int32_t (*handle_event)( const struct CSession_t *pThis, 
 				 const C_SESSION_EVENT eEvent, 
 				 const CEventParam *pEventParam, 
-				 const int32_t iEventParamSize );
+				 const int32_t iEventParamSize, 
+				 void *pUserData );
 				 
 	//session param.
 	CSessionParam stSessionParam;				 
@@ -129,6 +133,8 @@ typedef struct CSession_t
 	int32_t iBlockId;//block id.	
 	
 	void *pResultCode;//point to result.
+	
+	void *pUserData;
 	
 	CMutex Locker;
 }CSession;
@@ -146,7 +152,7 @@ CSession *create_session( C_SESSION_TYPE eSessionType, const CSessionParam *pSes
 void destroy_session( CSession *pThis );
 
 //set session business.
-int32_t set_session_business( CSession *pThis, session_business_t business );
+int32_t set_session_business( CSession *pThis, session_business_t business, void *pUserData );
 
 //set session event.
 int32_t set_session_event( CSession *pThis, session_event_t event );

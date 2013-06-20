@@ -297,7 +297,7 @@ static int32_t handle_input( const struct CSession_t *pThis,
 						CHttpData *pHttpData = (CHttpData *)pThis->pResultCode;
  	 			
 						//log_print( "http data notify................" );
-						pThis->handle_business( pThis, pSocket, pThis->pResultCode, sizeof(CHttpData), NULL );
+						pThis->handle_business( pThis, pSocket, pThis->pResultCode, sizeof(CHttpData), NULL, pThis->pUserData );
 					
 						if ( pHttpData )
 						{
@@ -321,7 +321,7 @@ static int32_t handle_input( const struct CSession_t *pThis,
 						stEventParam.pSocket = pSocket;
 					
 						//log_print( "http server close connection............" );
-						pThis->handle_event( pThis, EVENT_READ_ERROR, &stEventParam, sizeof(stEventParam) );
+						pThis->handle_event( pThis, EVENT_READ_ERROR, &stEventParam, sizeof(stEventParam), pThis->pUserData );
 					}	
 				}
 			}

@@ -288,8 +288,8 @@ static int32_t handle_input( const struct CSession_t *pThis,
 			//log_print( "read %d bytes.", iRetCode );
 			if ( iRetCode > 0 )
 			{
-				fwrite( pRecvBuf, 1, iRetCode, stdout );
-				fflush( stdout );
+				//fwrite( pRecvBuf, 1, iRetCode, stdout );
+				//fflush( stdout );
 				if ( start_parsing_http_data( pThis, pRecvBuf, iRetCode ) >= 0 )
 				{
 					if ( pThis->handle_business )
@@ -297,7 +297,7 @@ static int32_t handle_input( const struct CSession_t *pThis,
 						CHttpData *pHttpData = (CHttpData *)pThis->pResultCode;
  	 			
 						//log_print( "http data notify................" );
-						pThis->handle_business( pThis, pSocket, pThis->pResultCode, sizeof(CHttpData), NULL );
+						pThis->handle_business( pThis, pSocket, pThis->pResultCode, sizeof(CHttpData), NULL, pThis->pUserData );
 					
 						if ( pHttpData )
 						{

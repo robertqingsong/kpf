@@ -18,8 +18,6 @@ extern "C"
 #define CONTAINER_OF(addr, member, type) \
 	( ( type * ) ( (unsigned char *)addr - (unsigned char *)&(((type *)0)->member) ) )
 
-#define MAX_IP_SIZE  (32)
-
 #if defined(__cplusplus)
 }
 #endif

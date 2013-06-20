@@ -67,7 +67,7 @@ static int32_t handle_input( const struct CSession_t *pThis,
 		{
 			if ( pThis->handle_business )
 			{
-				pThis->handle_business( pThis, NULL, pRecvBuf, iRetCode, &stPeerAddr );
+				pThis->handle_business( pThis, pSocket, pRecvBuf, iRetCode, &stPeerAddr, pThis->pUserData );
 			}
 		}
 		else 
