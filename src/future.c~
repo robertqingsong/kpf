@@ -9,6 +9,6 @@ void init_future( void *pFuture, const future_callback_t callback )
 		
 		memset( pTheFuture, 0x00, sizeof(*pTheFuture) );
 		
-		pTheFuture->future_callback = callback;	
+		pTheFuture->callback = callback;	
 	}
 }

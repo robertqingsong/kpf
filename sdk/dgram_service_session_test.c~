@@ -25,7 +25,7 @@ int32_t dgram_service_session_business( const struct CSession_t *pThis,
 		
 		sprintf( pRespBuf, "%s:%d %s\r\n", pNetAddr->pIP, pNetAddr->iPort, pInData );
 
-		net_send( pSocket, pRespBuf, strlen(pRespBuf) + 1, pNetAddr );
+		net_sendto( pSocket, pRespBuf, strlen(pRespBuf) + 1, pNetAddr );
 		
 		iRetCode = 0;
 	}

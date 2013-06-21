@@ -27,8 +27,8 @@ int32_t stream_session_business( const struct CSession_t *pThis,
 			//fflush( pHandle );
 			
 			//log_print( "pHttpData->iCurrentHttpDataLen-->%d", pHttpData->iCurrentHttpDataLen );
-			//fwrite( pHttpData->pHttpData, 1, pHttpData->iCurrentHttpDataLen, stdout );
-			//fflush( stdout );
+			fwrite( pHttpData->pHttpData, 1, pHttpData->iCurrentHttpDataLen, stdout );
+			fflush( stdout );
 		}
 		
 		iRetCode = 0;

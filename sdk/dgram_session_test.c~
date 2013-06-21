@@ -8,8 +8,10 @@
 #include "session.h"
 
 int32_t dgram_session_business( const struct CSession_t *pThis, 
+					 const CSocket *pSocket, 
 				    const int8u_t *pInData, 
-				    const int32_t iInDataLen )
+				    const int32_t iInDataLen, 
+				    const CNetAddr *pNetAddr )
 {
 	int32_t iRetCode = -1;
 

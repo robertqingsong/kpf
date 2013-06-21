@@ -100,7 +100,7 @@ int main( int argc, char **argv )
 	if ( pSession )
 	{
 		log_print( "create tcp session ok................" );
-		if ( set_session_business( pSession, stream_session_business ) >= 0 )
+		if ( set_session_business( pSession, stream_session_business, NULL ) >= 0 )
 		{
 			if ( set_session_event( pSession, stream_session_event ) >= 0 )
 			{

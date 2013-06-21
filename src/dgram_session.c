@@ -37,11 +37,21 @@ static int32_t init( struct CSession_t *pThis, const CSessionParam *pSessionPara
 						pThis->pSocket = pUDPSocket;
 							
 						iRetCode = 0;
-					}	
+					}
+					else 
+						log_print( "%s %s %d: set none block socket failed.", __FILE__, __FUNCTION__, __LINE__  );
 				}
+				else 
+					log_print( "%s %s %d: add reactor socket failed.", __FILE__, __FUNCTION__, __LINE__  );
 			}
+			else 
+				log_print( "%s %s %d: connect udp socket failed.", __FILE__, __FUNCTION__, __LINE__  );
 		}
+		else 
+			log_print( "%s %s %d: bind udp socket failed.", __FILE__, __FUNCTION__, __LINE__  );
 	}
+	else 
+		log_print( "%s %s %d: create udp socket failed.", __FILE__, __FUNCTION__, __LINE__  );
 	
 	return iRetCode;
 }

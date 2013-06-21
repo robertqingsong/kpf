@@ -72,7 +72,7 @@ int main( int argc, char **argv )
 	if ( pUDPSession )
 	{
 		log_print( "create udp session ok................" );
-		if ( set_session_business( pUDPSession, dgram_session_business ) >= 0 )
+		if ( set_session_business( pUDPSession, dgram_session_business, NULL ) >= 0 )
 		{
 			if ( set_session_event( pUDPSession, dgram_session_event ) >= 0 )
 			{

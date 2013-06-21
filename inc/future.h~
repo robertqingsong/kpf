@@ -29,7 +29,7 @@ typedef struct CFuture_t
 }CFuture;
 
 //init future.
-void init_future( void *pFuture, const future_callback_t callback );
+void init_future( CFuture *pFuture, const future_callback_t callback );
 
 #if defined(__cplusplus)
 }

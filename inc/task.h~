@@ -20,7 +20,7 @@ extern "C"
 
 typedef struct CMessage_t
 {
-	
+	dsf
 	CQueueNode QNode;
 }CMessage;
 
